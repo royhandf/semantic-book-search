@@ -6,6 +6,7 @@
     "autoprefixer": "^10.4.20",
     "flowbite": "^2.5.2",
     "jquery": "^3.7.1",
+    "notyf": "^3.10.0",
     "postcss": "^8.4.47",
     "simple-datatables": "^9.2.1",
     "tailwindcss": "^3.4.14"

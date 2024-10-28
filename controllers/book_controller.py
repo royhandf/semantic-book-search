@@ -6,7 +6,6 @@ from models.author import Author
 from models.editor import Editor
 from urllib.parse import urlparse
 import os
-import mimetypes
 
 def allowed_file_image(filename):
     allowed_extensions = current_app.config['ALLOWED_EXTENSIONS_IMAGE']
