@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import CSRFProtect
+from flask_login import LoginManager
 import spacy
 import nltk
 
@@ -8,6 +8,6 @@ nltk.download('stopwords')
 nltk.download('wordnet')
 
 db = SQLAlchemy()
-csrf = CSRFProtect()
+login_manager = LoginManager()
 
 nlp = spacy.load('en_core_web_sm')

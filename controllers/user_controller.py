@@ -1,49 +1,26 @@
-from flask import request ,flash, session
+from flask import request, flash, session
 from werkzeug.security import check_password_hash
+from flask_login import login_user  # Correct import from Flask-Login
 from models.user import User
-from extensions import db
 
-def signup_user_function():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        if not name or not email or not password:
-            flash('Semua field harus diisi!', 'danger')
-            return None
-        
-        if User.query.filter_by(name=name).first():
-            flash('Username sudah terdaftar!', 'danger')
-            return None
-        
-        if User.query.filter_by(email=email).first():
-            flash('Email sudah terdaftar!', 'danger')
-            return None
-
-        new_user = User(name=name, email=email)
-        new_user.set_password(password)
-        
-        db.session.add(new_user)
-        db.session.commit()
-        
-        return new_user
-    
 def signin_user_function():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
         
+        # Check if both fields are filled
         if not email or not password:
-            flash('Semua field harus diisi!', 'danger')
+            flash('All fields must be filled!', 'danger')
             return None
         
         user = User.query.filter_by(email=email).first()
         
+        # Verify if the user exists and the password matches
         if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
-            return user 
+            login_user(user)  # Logs in the user
+            session['user_id'] = user.id  # Store user ID in the session
+            session['user'] = user.email  # Optionally store user email or any other info
+            return user
         else:
-            raise ValueError("Invalid email or password.")
-        
-        
+            # Return None if authentication fails
+            return None
