@@ -76,11 +76,11 @@ def book_detail(id):
 # dashboard/books
 @main.route('/dashboard/books', methods=['GET'])
 @login_required
-def books():
-    books = Book.get_all()
-    return render_template('dashboard/books.html', books=books, user=session.get('user'))  # Use .get() to avoid KeyError
+async def books():
+    books = await Book.get_all() 
+    user = session.get('user')  # Mengambil informasi pengguna dari session
+    return render_template('books.html', books=books, user=user)
 
-# dashboard/book create
 @main.route('/dashboard/book/create', methods=['POST'])
 def add_book():
     try:

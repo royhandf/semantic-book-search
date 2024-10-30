@@ -7,8 +7,6 @@ from sqlalchemy.orm import joinedload
 import numpy as np
 import asyncio
 from functools import lru_cache
-from sqlalchemy.future import select
-
 
 # Cache untuk preprocessing
 @lru_cache(maxsize=1000)
@@ -90,28 +88,6 @@ async def search_books_function(query):
     # Sort and return top 10 by average similarity and standard deviation
     return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))
 
-async def get_collection():
-    # Ambil semua buku dari model
-    books = await asyncio.to_thread(Book.get_collection)  # Mendapatkan koleksi buku
-    
-    results = []
-    for book in books:
-        book_id = book.id
-        book_title = book.title
-        cover_link = book.cover_link
-        
-        std_dev = None
-        average_similarity = None
-        
-        results.append({
-            'id': book_id,
-            'title': book_title,
-            'std_dev': std_dev,
-            'average_similarity': average_similarity,
-            'cover_link': cover_link
-        })
-
-    return results
     
     
     

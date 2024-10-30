@@ -11,22 +11,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   </head>
   <body>
-    <nav class="bg-red py-4 px-6 shadow-sm">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <nav class="bg-white py-4 px-6 shadow-sm">
+      <div class="max-w-screen-xl flex items-center justify-between mx-auto p-2 gap-3">
         <!-- Logo and Nav Links -->
-        <div class="flex items-center space-x-8">
-          <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 bg-violet-600 rounded"></div>
-            <span class="text-xl font-semibold">SemanticBook</span>
-          </div>
-        </div>
+        <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
+          <img class="w-8 h-8" src="{{ url_for('static', filename='images/book.png') }}" alt="logo" width="32" height="32" />
+          <span class="self-center text-2xl font-semibold whitespace-nowrap">SemanticBook</span>
+        </a>
 
-        <!-- Auth Section -->
-        <div class="flex items-center space-x-4">
-          <div class="relative w-8 h-8 overflow-hidden bg-gray-100 rounded-full dark:bg-gray-600">
-            <svg class="absolute w-10 h-10 text-gray-400 -left-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-            </svg>
+        <button id="dropdownUser" data-dropdown-toggle="dropdownUserDasboard" class="flex items-center text-sm pe-1 font-medium text-gray-900 rounded-full hover:text-blue-600" type="button">
+          <img class="w-8 h-8 rounded-full me-2" src="https://avatar.iran.liara.run/public" alt="avatar" />
+          {{ user.name.capitalize() }}<svg class="w-2.5 h-2.5 ms-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4" />
+          </svg>
+        </button>
+
+        <!-- Dropdown menu -->
+        <div id="dropdownUserDasboard" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44">
+          <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+            <li>
+              <a href="#" class="block px-4 py-2 hover:bg-gray-100">Dashboard</a>
+            </li>
+            <li>
+              <a href="#" class="block px-4 py-2 hover:bg-gray-100 ">Settings</a>
+            </li>
+          </ul>
+          <div class="py-2">
+            <a href="{{ url_for('main.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign out</a>
           </div>
         </div>
       </div>
@@ -48,7 +59,7 @@
               <!-- Modal header -->
               <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Book</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="add-book">
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center " data-modal-toggle="add-book">
                   <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
                   </svg>
@@ -221,7 +232,11 @@
               <tr>
                 <td class="font-medium text-gray-900 whitespace-nowrap dark:text-white">{{ loop.index }}</td>
                 <td>
-                  <img src="{{ url_for('static', filename='images/placeholder.png') }}" data-src="{{ book.cover_link }}" alt="{{ book.title }} cover" class="lazy-load" />
+                  {% if book.cover_link.startswith('http://') or book.cover_link.startswith('https://') %}
+                      <img src="{{ book.cover_link }}" alt="{{ book.title }} cover" class="lazy-load" />
+                  {% else %}
+                      <img src="{{ url_for('static', filename=book.cover_link) }}" alt="{{ book.title }} cover" class="lazy-load" />
+                  {% endif %}   
                 </td>
                 <td>{{ book.title }}</td>
                 <td>{{ book.authors }}</td>
@@ -239,7 +254,7 @@
                       <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
                         <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
                           <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Detail Information</h3>
-                          <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="detail-{{ book.id }}">
+                          <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center " data-modal-hide="detail-{{ book.id }}">
                             <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
                             </svg>

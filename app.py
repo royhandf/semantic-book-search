@@ -16,7 +16,7 @@ def create_app():
 def register_extensions(app):
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'main.signin'  # Ensure this points to your sign-in route
+    login_manager.login_view = 'main.signin' 
     Migrate(app, db)
 
 def register_resources(app):

@@ -54,7 +54,7 @@ def add_book_function():
         # Ensure the directory exists
         upload_folder_image = os.path.join(current_app.root_path, 'static/uploads/images')
         os.makedirs(upload_folder_image, exist_ok=True)
-
+        
         upload_folder_pdf = os.path.join(current_app.root_path, 'static/uploads/pdfs')
         os.makedirs(upload_folder_pdf, exist_ok=True)
 
@@ -64,8 +64,8 @@ def add_book_function():
         pdf_full_path = os.path.join(upload_folder_pdf, pdf_filename)
         pdf.save(pdf_full_path)
         
-        image_filepath = os.path.join('static', 'uploads', 'images', image_filename).replace('\\', '/')
-        pdf_filepath = os.path.join('static', 'uploads', 'pdfs', pdf_filename).replace('\\', '/')
+        image_filepath = os.path.join('uploads', 'images', image_filename).replace('\\', '/')
+        pdf_filepath = os.path.join('uploads', 'pdfs', pdf_filename).replace('\\', '/')
         
         book = Book(
             title=title,
@@ -185,7 +185,7 @@ def edit_book_function(book):
                 os.makedirs(upload_folder_image, exist_ok=True)
                 image_full_path = os.path.join(upload_folder_image, image_filename)
                 image_cover.save(image_full_path)
-                book.cover_link = os.path.join('static', 'uploads', 'images', image_filename).replace('\\', '/')
+                book.cover_link = os.path.join('uploads', 'images', image_filename).replace('\\', '/')
 
         # Cek dan hapus file PDF lama jika ada file baru yang diunggah
         if 'pdf_link' in request.files and request.files['pdf_link'].filename != '':
@@ -203,11 +203,12 @@ def edit_book_function(book):
                 os.makedirs(upload_folder_pdf, exist_ok=True)
                 pdf_full_path = os.path.join(upload_folder_pdf, pdf_filename)
                 pdf.save(pdf_full_path)
-                book.pdf_link = os.path.join('static', 'uploads', 'pdfs', pdf_filename).replace('\\', '/')
+                book.pdf_link = os.path.join('uploads', 'pdfs', pdf_filename).replace('\\', '/')
 
         # Simpan ke database
         db.session.commit()
                 
+        print(image_full_path)
         data = {
             'id': book.id,
             'title': book.title,
@@ -233,3 +234,4 @@ def delete_book_function(book):
         
     db.session.delete(book)
     db.session.commit()
+
