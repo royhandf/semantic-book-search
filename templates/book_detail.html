@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="description" content="Effortlessly discover books by searching titles, authors, or keywords with our semantic engine. Browse a diverse selection and start reading online instantly." />
+    <meta name="keywords" content="books, search, titles, authors, keywords, semantic engine, reading, online" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SemanticBook - Book Detail</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+  </head>
+  <body>
+    <nav class="bg-white py-4 px-6 shadow-sm">
+      <div class="max-w-screen-xl flex items-center justify-between mx-auto p-2 gap-3">
+        <!-- Logo and Nav Links -->
+        <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
+          <img class="w-8 h-8" src="{{ url_for('static', filename='images/book.png') }}" alt="flowbite logo" width="32" height="32" />
+          <span class="self-center text-2xl font-semibold whitespace-nowrap">SemanticBook</span>
+        </a>
+        <!-- Search Input -->
+        <div class="flex-1 max-w-md mx-4">
+          <form class="flex items-center" method="get" action="{{ url_for('main.search') }}">
+            <div class="relative w-full">
+              <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                </svg>
+              </div>
+              <input type="text" name="query" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-violet-500 focus:border-violet-500 block w-full ps-10 p-2.5" placeholder="Search books by title, author, or keyword" />
+            </div>
+            <button type="submit" class="inline-flex items-center py-2.5 px-3 ms-2 text-sm font-medium text-white bg-violet-700 rounded-lg border border-violet-700 hover:bg-violet-800 focus:outline-none focus:ring-violet-300">
+              <svg class="w-4 h-4 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+              </svg>Search
+            </button>
+          </form>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container p-6">
+      <div class="mx-auto max-w-screen-xl">
+        <nav class="flex" aria-label="Breadcrumb">
+          <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+            <li class="inline-flex items-center">
+              <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-violet-600">Home</a>
+            </li>
+            <li aria-current="page">
+              <div class="flex items-center">
+                <svg class="rtl:rotate-180 w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4" />
+                </svg>
+                <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2">{{ book.title }}</span>
+              </div>
+            </li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Book Detail Section -->
+    <div class="container mx-auto p-4 mb-80 bg-white">
+      <div class="mx-auto lg:max-w-7xl sm:max-w-full">
+        <!-- Book Details -->
+        <div class="grid gap-24 md:grid-cols-4">
+          <div class="md:col-span-3">
+            <h2 class="text-3xl mb-2 font-bold text-gray-800">{{ book.title }}</h2>
+            <p class="text-md text-gray-600">
+              by{% if book.authors|length > 0 %}
+                {% for author in book.authors %}
+                  {{ author.name }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              {% elif book.editors|length > 0 %}
+                {% for editor in book.editors %}
+                  {{ editor.name }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              {% else %}
+                No authors or editors available.
+              {% endif %}
+            </p>
+
+            <div class="mt-6">
+              <h3 class="text-xl font-semibold mb-4">About this ebook</h3>
+              <p class="text-gray-700">{{ book.description }}</p>
+            </div>
+
+            <hr class="h-px my-8 bg-gray-200 border-0" />
+
+            <div class="max-w-2xl p-4">
+              <div class="grid grid-cols-4 gap-3 text-sm">
+                <div class="text-gray-600">Language</div>
+                <div class="text-gray-600">Publisher</div>
+                <div class="text-gray-600">Release date</div>
+                <div class="text-gray-600">ISBN</div>
+
+                <div class="font-medium text-gray-900">English</div>
+                <div class="font-medium text-gray-900">{{ book.publisher }}</div>
+                <div class="font-medium text-gray-900">{{ book.published }}</div>
+                <div class="font-medium text-gray-900">{{ book.isbn }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Book Cover -->
+          <div class="self-start">
+            <div class="mb-8 rounded-lg" id="random-bg" style="background-image: linear-gradient(to bottom, #FED7AA 50%, transparent 50%);">
+              <img src="{{ book.cover_link }}" alt="{{ book.title }}" class="h-auto w-2/3 mx-auto rounded-lg shadow-lg" />
+            </div>
+
+            <a href="{{ url_for('main.download_pdf', book_id=book.id) }}" target="_blank" class="w-full flex items-center justify-center mt-6 px-4 py-2 text-sm font-medium text-white bg-violet-700 rounded-lg border border-violet-700 hover:bg-violet-800 focus:outline-none focus:ring-violet-300">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+              </svg>
+              <span class="ml-1">Download Ebook</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/flowbite.min.js') }}"></script>
+
+    <script>
+      const lightColors = [
+        '#f5d0fe', // Light Fuchsia
+        '#bae6fc', // light sky
+        '#A5F3FC', // Light cyan
+        '#fecdd3', // Light pink
+        '#FED7AA', // Light orange
+        '#ddd6fe' // Light purple
+      ]
+      
+      const randomColor = lightColors[Math.floor(Math.random() * lightColors.length)]
+      
+      // Apply the random color as the gradient
+      document.getElementById('random-bg').style.backgroundImage = `linear-gradient(to bottom, ${randomColor} 80%, transparent 50%)`
+    </script>
+  </body>
+</html>

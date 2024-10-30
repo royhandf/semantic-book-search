@@ -45,6 +45,10 @@ class Book(db.Model):
     @classmethod
     def get_by_id(cls, id):
         return cls.query.get(id)
+
+    @classmethod
+    def get_collection(cls):
+        return cls.query.with_entities(cls.id, cls.title, cls.cover_link).all()
     
     @classmethod
     def get_description_contents_by_id(cls, id):

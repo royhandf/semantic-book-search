@@ -5,28 +5,30 @@ from models.book import Book
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
 import numpy as np
-import re
+import asyncio
 from functools import lru_cache
+from sqlalchemy.future import select
+
 
 # Cache untuk preprocessing
 @lru_cache(maxsize=1000)
 def cached_preprocessing(text):
     return preprocessing(text)
 
-def search_books_function(query):    
+async def search_books_function(query):    
     # 1. Preprocessing query
     processed_query = set(cached_preprocessing(query))
     
     # 2. Query database
-    books = (Book.query
-             .options(
-                 joinedload(Book.authors),
-                 joinedload(Book.editors))
-             .all())
+    books = await asyncio.to_thread(lambda: (
+        Book.query
+        .options(joinedload(Book.authors), joinedload(Book.editors))
+        .all()
+    ))
     
     # 3. Preprocessing metadata
     processed_metadata_books = []
-    book_mapping = {}  # Dictionary untuk mapping book_id ke index
+    book_mapping = {} 
     
     for idx, book in enumerate(books):
         # Menggunakan format key yang sama dengan yang dihasilkan calculate_tfidf_top_terms
@@ -46,7 +48,7 @@ def search_books_function(query):
         processed_metadata_books.append(processed_book)
     
     # 4. Calculate TF-IDF
-    top_terms = calculate_tfidf_top_terms(processed_metadata_books)
+    top_terms = await asyncio.to_thread(calculate_tfidf_top_terms, processed_metadata_books)
     
     # 5. Calculate similarities
     book_similarities = defaultdict(list)
@@ -71,17 +73,45 @@ def search_books_function(query):
             try:
                 book_idx = book_mapping[book_id]
                 book = books[book_idx]
-                
-                book_stats.append({
-                    'id': book.id,
-                    'title': book.title,
-                    'average_similarity': np.mean(similarities),
-                    'std_dev': np.std(similarities, ddof=0),
-                    'cover': book.cover_link
-                })
+
+                avg_similarity = np.mean(similarities)
+                if avg_similarity >= 0.1:  # Filter by average similarity
+                    book_stats.append({
+                        'id': book.id,
+                        'title': book.title,
+                        'average_similarity': avg_similarity,
+                        'std_dev': np.std(similarities, ddof=0),
+                        'cover': book.cover_link
+                    })
             except KeyError as e:
                 print(f"Warning: Book ID {book_id} not found in mapping")
                 continue
+
+    # Sort and return top 10 by average similarity and standard deviation
+    return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))
+
+async def get_collection():
+    # Ambil semua buku dari model
+    books = await asyncio.to_thread(Book.get_collection)  # Mendapatkan koleksi buku
     
-    # 7. Sort and return top 10
-    return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))[:10]
+    results = []
+    for book in books:
+        book_id = book.id
+        book_title = book.title
+        cover_link = book.cover_link
+        
+        std_dev = None
+        average_similarity = None
+        
+        results.append({
+            'id': book_id,
+            'title': book_title,
+            'std_dev': std_dev,
+            'average_similarity': average_similarity,
+            'cover_link': cover_link
+        })
+
+    return results
+    
+    
+    
