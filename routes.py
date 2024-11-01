@@ -19,12 +19,12 @@ def signin():
         
         if user:
             flash("You are now signed in!", "success")
-            return redirect(url_for('main.books'))  # Change this if your books route is different
+            return redirect(url_for('main.books')) 
         
         flash("Sign in failed. Please check your email and password.", "error")
-        return redirect(url_for('main.index'))  # Ensure main.index is correct for your index route
+        return redirect(url_for('main.index')) 
     
-    return render_template('index.html')  # Change this to your actual signin template
+    return render_template('index.html') 
     
 @main.route('/logout')
 def logout():
@@ -32,10 +32,8 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('main.index'))
 
-# In routes.py
 @main.route('/books/search', methods=['GET'])
 async def search():
-    
     query = request.args.get('query', '')
     page = request.args.get('page', 1, type=int)
     per_page = 12
@@ -78,7 +76,7 @@ def book_detail(id):
 @login_required
 async def books():
     books = await Book.get_all() 
-    user = session.get('user')  # Mengambil informasi pengguna dari session
+    user = session.get('user') 
     return render_template('books.html', books=books, user=user)
 
 @main.route('/dashboard/book/create', methods=['POST'])
@@ -116,7 +114,7 @@ def download_pdf(book_id):
     book = Book.get_by_id(book_id)
     if book:
         pdf_link = get_book_download_link(book)
-        return redirect(pdf_link)  # Redirect ke link download
+        return redirect(pdf_link) 
     return jsonify({'error': 'Book not found'}), 404
 
 @main.route('/dashboard/book/<int:id>/details', methods=['GET'])
