@@ -6,11 +6,10 @@
     <meta name="description" content="Effortlessly discover books by searching titles, authors, or keywords with our semantic engine. Browse a diverse selection and start reading online instantly." />
     <meta name="keywords" content="books, search, titles, authors, keywords, semantic engine, reading, online" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SemanticBook - Find Your Books</title>
+    <title>Revelare - Find Books with Ease</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+    <link rel="preload" href="{{ url_for('static', filename='css/fonts.css') }}" crossorigin="anonymous"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/notyf.min.css') }}" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   </head>
   <body>
     <nav class="bg-white py-4 px-6 shadow-sm">
@@ -18,7 +17,7 @@
         <!-- Logo and Nav Links -->
         <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
           <img class="w-8 h-8" src="{{ url_for('static', filename='images/book.png') }}" alt="logo" width="32" height="32" />
-          <span class="self-center text-2xl font-semibold whitespace-nowrap">SemanticBook</span>
+          <span class="self-center text-2xl font-semibold whitespace-nowrap">Revelare</span>
         </a>
 
         <!-- Sign in -->
@@ -61,10 +60,11 @@
     <section class="max-w-7xl mx-auto px-6 h-[80vh] flex flex-col justify-center items-center">
       <div class="text-center">
         <h1 class="text-4xl sm:text-5xl md:text-5xl lg:text-5xl xl:text-6xl mb-3 text-center text-gray-800 font-black leading-10">
-          Semantic
-          <span class="text-violet-800">Book Search</span>
+          Discover Books with <span class="text-violet-800">Revelare</span>
         </h1>
-        <p class="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">Effortlessly discover books by searching titles, authors, or keywords with our semantic engine. Browse a diverse selection and start reading online instantly.</p>
+        <p class="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
+          Effortlessly connect with the books you love! Use our semantic search to browse titles, authors, or keywords and access a rich library of reading material instantly.
+        </p>
         <!-- Search Bar -->
         <div class="max-w-2xl mx-auto relative">
           <form action="{{ url_for('main.search') }}" method="get">
@@ -74,6 +74,29 @@
         </div>
       </div>
     </section>
+
+    <!-- -->
+
+    <!-- Buku Baru -->
+    <section class="container mx-auto p-6">
+      <div class="mx-auto lg:max-w-7xl sm:max-w-full">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">New Books</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {% for book in books %}
+          <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <img src="{{ book.cover }}" alt="{{ book.title }}" class="w-full h-48 object-cover object-center" />
+            <div class="p-4">
+              <h3 class="text-lg font-semibold text-gray-800">{{ book.title }}</h3>
+              <p class="text-sm text-gray-600">{{ book.author }}</p>
+              <p class="text-sm text-gray-600">{{ book.year }}</p>
+              <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="block mt-2 text-sm font-medium text-violet-700 hover:text-violet-800">Read More</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
 
     <script src="{{ url_for('static', filename='js/flowbite.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/notyf.min.js') }}"></script>

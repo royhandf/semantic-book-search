@@ -4,19 +4,17 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SemanticBook - Find Your Books</title>
+    <title>Revelare - Find Books with Ease</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='extensions/summernote/summernote-lite.css') }}" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preload" href="{{ url_for('static', filename='css/fonts.css') }}" crossorigin="anonymous"/>
   </head>
   <body>
     <nav class="bg-white py-4 px-6 shadow-sm">
       <div class="max-w-screen-xl flex items-center justify-between mx-auto p-2 gap-3">
         <!-- Logo and Nav Links -->
-        <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
+        <a href="{{ url_for('main.index') }}" class="flex items-center gap-2" target="_blank">
           <img class="w-8 h-8" src="{{ url_for('static', filename='images/book.png') }}" alt="logo" width="32" height="32" />
-          <span class="self-center text-2xl font-semibold whitespace-nowrap">SemanticBook</span>
+          <span class="self-center text-2xl font-semibold whitespace-nowrap">Revelare</span>
         </a>
 
         <button id="dropdownUser" data-dropdown-toggle="dropdownUserDasboard" class="flex items-center text-sm pe-1 font-medium text-gray-900 rounded-full hover:text-blue-600" type="button">
@@ -48,7 +46,9 @@
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-semibold text-gray-800">Books List</h2>
         <button data-modal-target="add-book" data-modal-toggle="add-book" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-          <i class="fas fa-plus"></i>
+          <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m12 4v16m8-8H4" />
+          </svg>
           <span>Add New Book</span>
         </button>
 
@@ -273,7 +273,11 @@
 
                 <td>
                   <div class="flex gap-2">
-                    <button type="button" data-modal-target="edit-book-{{ book.id }}" data-modal-toggle="edit-book-{{ book.id }}" class="text-white bg-yellow-300 bg hover:bg-amber-400 focus:outline-none rounded-lg text-xs font-medium px-3 py-2"><i class="fas fa-edit"></i></button>
+                    <button type="button" data-modal-target="edit-book-{{ book.id }}" data-modal-toggle="edit-book-{{ book.id }}" class="text-white bg-yellow-300 bg hover:bg-amber-400 focus:outline-none rounded-lg text-xs font-medium px-3 py-2">
+                      <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m3 6 3 3m0 0 6-6m6 6-3 3m3-3 6 6m-6 0-3 3m0-3-6-6" />
+                      </svg>
+                    </button>
 
                     <!-- MODAL EDIT -->
                     <div id="edit-book-{{ book.id }}" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
@@ -368,7 +372,11 @@
                     </div>
 
                     <form action="{{ url_for('main.delete_book', id=book.id) }}" method="post" class="delete-form">
-                      <button type="button" class="btn-delete bg-red-600 text-white hover:bg-red-700 focus:outline-none px-3 py-2 text-xs font-medium rounded-lg"><i class="fas fa-trash"></i></button>
+                      <button type="button" class="btn-delete bg-red-600 text-white hover:bg-red-700 focus:outline-none px-3 py-2 text-xs font-medium rounded-lg">
+                        <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 6 12 12m0-12-12 12" />
+                        </svg>
+                      </button>
                     </form>
                   </div>
                 </td>
@@ -383,7 +391,6 @@
     <script src="{{ url_for('static', filename='js/flowbite.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/simple-datatables.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sweetalert2.all.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='extensions/summernote/summernote-lite.js') }}"></script>
     <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
 
     {% with messages=get_flashed_messages(with_categories=true) %}
@@ -391,7 +398,7 @@
         <script>
             {% for category, message in messages %}
                 Swal.fire({
-                    title: '{{ category|title }}!',  // Mengubah 'success' menjadi 'Success' atau 'error' menjadi 'Error'
+                    title: '{{ category|title }}!', 
                     text: '{{ message }}',
                     icon: '{{ category }}',  
                     confirmButtonText: 'OK',
