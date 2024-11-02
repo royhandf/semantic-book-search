@@ -13,7 +13,7 @@ from functools import lru_cache
 def cached_preprocessing(text):
     return preprocessing(text)
 
-async def search_books_function(query, sort_option):    
+async def search_books_function(query):    
     # 1. Preprocessing query
     processed_query = set(cached_preprocessing(query))
     
@@ -86,9 +86,4 @@ async def search_books_function(query, sort_option):
                 continue
 
     # 7. Return sorted results based on sort_option
-    if sort_option == 'high_to_low':
-        return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
-    elif sort_option == 'low_to_high':
-        return sorted(book_stats, key=lambda x: (x['average_similarity'], -x['std_dev']))  # Sort low to high
-    
-    return book_stats
+    return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low

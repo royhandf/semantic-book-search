@@ -73,20 +73,8 @@
                         {% if query %}Results for {{ query }}{% else %}All collection books{% endif %}
                     </h1>
                     {% if results %}
-                        <div class="flex justify-between items-center">
-                            <p class="mt-2 text-gray-600">Found {{ total_results }} matching books</p>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm text-gray-600">Sort by:</span>
-                                <form action="{{ url_for('main.search') }}" method="get" id="sortForm">
-                                    <select name="sort" id="sort" class="text-sm text-gray-800 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500" onchange="this.form.submit()">
-                                        <option value="high_to_low" {% if sort_option == 'high_to_low' %}selected{% endif %}>High to Low</option>
-                                        <option value="low_to_high" {% if sort_option == 'low_to_high' %}selected{% endif %}>Low to High</option>
-                                    </select>
-                                </form>                                                         
-                            </div>
-                        </div>
+                        <p class="mt-2 text-gray-600">Found {{ total_results }} matching books</p>
                     {% endif %}
-
                 </div>
                 {% if results %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">

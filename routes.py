@@ -34,7 +34,6 @@ def logout():
 
 @main.route('/books/search', methods=['GET'])
 async def search():
-    sort_option = request.args.get('sort', 'high_to_low')
     query = request.args.get('query', '')
     page = request.args.get('page', 1, type=int)
     per_page = 12
@@ -43,7 +42,7 @@ async def search():
         flash("Please enter a search query.", "error")
         return redirect(request.referrer or url_for('main.index'))
     
-    all_results = await search_books_function(query, sort_option)
+    all_results = await search_books_function(query)
     
     session['search_histories'] = [book for book in all_results[:10]]
     
@@ -68,7 +67,6 @@ async def search():
         total_pages=total_pages,
         total_results=total_results,
         page_range=page_range,
-        sort_option=sort_option,
         start_page=start_page, 
         end_page=end_page       
     )
