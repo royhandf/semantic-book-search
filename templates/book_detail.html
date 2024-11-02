@@ -9,32 +9,80 @@
     <title>Revelare - Find Books with Ease</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/swiper-bundle.min.css') }}" />
+    <style>  
+      .swiper {
+        width: 100%;
+        height: 100%;
+      }
+  
+      .swiper-slide {
+        text-align: center;
+        font-size: 18px;
+        background: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+  
+      .swiper-slide img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    </style>
   </head>
   <body>
     <nav class="bg-white py-4 px-6 shadow-sm">
       <div class="max-w-screen-xl flex items-center justify-between mx-auto p-2 gap-3">
-        <!-- Logo and Nav Links -->
         <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
           <img class="w-8 h-8" src="{{ url_for('static', filename='images/book.png') }}" alt="logo" width="32" height="32" />
           <span class="self-center text-2xl font-semibold whitespace-nowrap">Revelare</span>
         </a>
-        <!-- Search Input -->
         <div class="flex-1 max-w-md mx-4">
           <form class="flex items-center" method="get" action="{{ url_for('main.search') }}">
             <div class="relative w-full">
-              <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                </svg>
-              </div>
-              <input type="text" name="query" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-violet-500 focus:border-violet-500 block w-full ps-10 p-2.5" placeholder="Search books by title, author, or keyword" />
+              <input type="text" name="query" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-violet-500 focus:border-violet-500 block w-full ps-4 p-2.5" placeholder="Search books by title, author, or keyword" />
             </div>
             <button type="submit" class="inline-flex items-center py-2.5 px-3 ms-2 text-sm font-medium text-white bg-violet-700 rounded-lg border border-violet-700 hover:bg-violet-800 focus:outline-none focus:ring-violet-300">
-              <svg class="w-4 h-4 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+              <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-              </svg>Search
+              </svg>
             </button>
           </form>
+        </div>
+        <!-- Sign in -->
+        <button data-modal-target="signin" data-modal-toggle="signin" class="bg-violet-600 text-white px-6 py-2 rounded-lg hover:bg-violet-700 transition duration-300">Sign In</button>
+        <div id="signin" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+          <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <!-- Modal header -->
+              <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900">Sign In to Your Account</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-toggle="signin">
+                  <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                  </svg>
+                  <span class="sr-only">Close modal</span>
+                </button>
+              </div>
+              <!-- Modal body -->
+              <div class="p-4 md:p-5">
+                <form class="space-y-4" method="post" action="{{ url_for('main.signin') }}">
+                  <div>
+                    <label for="email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
+                    <input type="email" name="email" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="name@company.com" required />
+                  </div>
+                  <div>
+                    <label for="password" class="block mb-2 text-sm font-medium text-gray-900">Password</label>
+                    <input type="password" name="password" id="password" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required />
+                  </div>
+                  <button type="submit" class="w-full text-white bg-violet-700 hover:bg-violet-800 focus:ring-4 focus:outline-none focus:ring-violet-300 font-medium rounded-lg text-sm px-5 py-2.5 mt-4 text-center">Sign in</button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </nav>
@@ -59,10 +107,8 @@
       </div>
     </div>
 
-    <!-- Book Detail Section -->
-    <div class="container mx-auto p-4 mb-80 bg-white">
+    <div class="container mx-auto p-4 mb-20 bg-white">
       <div class="mx-auto lg:max-w-7xl sm:max-w-full">
-        <!-- Book Details -->
         <div class="grid gap-24 md:grid-cols-4">
           <div class="md:col-span-3">
             <h2 class="text-3xl mb-2 font-bold text-gray-800">{{ book.title }}</h2>
@@ -87,22 +133,28 @@
 
             <hr class="h-px my-8 bg-gray-200 border-0" />
 
-            <div class="max-w-2xl p-4">
-              <div class="grid grid-cols-4 gap-3 text-sm">
-                <div class="text-gray-600">Language</div>
-                <div class="text-gray-600">Publisher</div>
-                <div class="text-gray-600">Release date</div>
-                <div class="text-gray-600">ISBN</div>
-
-                <div class="font-medium text-gray-900">English</div>
-                <div class="font-medium text-gray-900">{{ book.publisher }}</div>
-                <div class="font-medium text-gray-900">{{ book.published }}</div>
-                <div class="font-medium text-gray-900">{{ book.isbn }}</div>
+            <div class="w-full p-4">
+              <div class="grid grid-cols-10 gap-3 text-sm">
+                <div class="col-span-2">
+                  <div class="text-gray-600 mb-2">Language</div>
+                  <div class="font-medium text-gray-900">English</div>
+                </div>
+                <div class="col-span-2">
+                  <div class="text-gray-600 mb-2">Publisher</div>
+                  <div class="font-medium text-gray-900">{{ book.publisher }}</div>
+                </div>
+                <div class="col-span-2">
+                  <div class="text-gray-600 mb-2">Release date</div>
+                  <div class="font-medium text-gray-900">{{ book.published }}</div>
+                </div>
+                <div class="col-span-4">
+                  <div class="text-gray-600 mb-2">ISBN</div>
+                  <div class="font-medium text-gray-900">{{ book.isbn }}</div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Book Cover -->
           <div class="self-start">
             <div class="mb-8 rounded-lg" id="random-bg" style="background-image: linear-gradient(to bottom, #FED7AA 50%, transparent 50%);">
               <img src="{{ book.cover_link }}" alt="{{ book.title }}" class="h-auto w-2/3 mx-auto rounded-lg shadow-lg" />
@@ -119,21 +171,98 @@
       </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/flowbite.min.js') }}"></script>
+    <div class="container mx-auto p-4 mb-10 bg-white">
+      <div class="mx-auto max-w-screen-xl">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Similar Books You Might Like</h2>
+        <div class="swiper similarSwiper">
+          <div class="swiper-wrapper">
+            {% for related_book in related_books %}
+              <div class="swiper-slide">
+                <a href="{{ url_for('main.book_detail', id=related_book['id']) }}" class="block">
+                  <div class="bg-white rounded-2xl border-2 shadow-sm p-5 cursor-pointer hover:-translate-y-2 h-full transition-all relative">
+                      <div class="w-4/5 h-[210px] overflow-hidden mx-auto aspect-w-16 aspect-h-8 mb-4">
+                          <img src="{{ related_book['cover'] }}"
+                               alt="{{ related_book['title'] }}"
+                               class="h-full w-full object-contain"
+                               onerror="this.onerror=null; this.src='/static/images/placeholder.png'; this.classList.add('p-2');" />
+                      </div>
+                      <div class="flex flex-col">
+                          <h3 class="text-lg font-extrabold text-gray-800 line-clamp-2 h-[3.8rem]">{{ related_book['title'] }}</h3>
+                          <div>
+                              <div class="flex justify-between items-center">
+                                  <span class="text-sm text-gray-600">Similarity:</span>
+                                  <span class="text-sm font-medium text-gray-800">
+                                      {% if related_book['average_similarity'] is not none %}
+                                          {{ (related_book['average_similarity'] * 100) | round | int}}%
+                                      {% else %}
+                                          -
+                                      {% endif %}
+                                  </span>
+                              </div>
+                          </div>
+                          <div class="mt-3 pt-3 border-t border-gray-100">
+                              <button class="w-full text-center text-sm text-violet-600 hover:text-violet-800 font-medium">View Details</button>
+                          </div>
+                      </div>
+                  </div>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="swiper-pagination"></div>
+        </div>
+      </div>
+    </div>
 
-    <script>
+    <footer>
+      <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:py-10 lg:px-8">
+        <div class="mt-4 border-t border-gray-200 pt-8 flex items-center justify-center">
+          <p class="mt-4 text-base text-gray-400">
+            &copy; 2024 Revelare. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/flowbite.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/swiper-bundle.min.js') }}"></script>
+    <script type="module">
+      var swiper = new Swiper(".similarSwiper", {
+        slidesPerView: 4,
+        spaceBetween: 30,
+        freeMode: true,
+        autoplay: {
+          delay: 2500,
+          disableOnInteraction: false,
+        },
+        breakpoints: {
+          640: {
+            slidesPerView: 2,
+            spaceBetween: 20,
+          },
+          768: {
+            slidesPerView: 4,
+            spaceBetween: 30,
+          },
+          1024: {
+            slidesPerView: 5,
+            spaceBetween: 20,
+          },
+        },
+      });
+    </script>
+    <script type="module">
       const lightColors = [
-        '#f5d0fe', // Light Fuchsia
-        '#bae6fc', // light sky
-        '#A5F3FC', // Light cyan
-        '#fecdd3', // Light pink
-        '#FED7AA', // Light orange
-        '#ddd6fe' // Light purple
+        '#f5d0fe',
+        '#bae6fc', 
+        '#A5F3FC',
+        '#fecdd3', 
+        '#FED7AA', 
+        '#ddd6fe' 
       ]
       
       const randomColor = lightColors[Math.floor(Math.random() * lightColors.length)]
       
-      // Apply the random color as the gradient
       document.getElementById('random-bg').style.backgroundImage = `linear-gradient(to bottom, ${randomColor} 80%, transparent 50%)`
     </script>
   </body>

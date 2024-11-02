@@ -13,7 +13,7 @@ from functools import lru_cache
 def cached_preprocessing(text):
     return preprocessing(text)
 
-async def search_books_function(query):    
+async def search_books_function(query, sort_option):    
     # 1. Preprocessing query
     processed_query = set(cached_preprocessing(query))
     
@@ -73,7 +73,7 @@ async def search_books_function(query):
                 book = books[book_idx]
 
                 avg_similarity = np.mean(similarities)
-                if avg_similarity >= 0.1:  # Filter by average similarity
+                if avg_similarity >= 0.5:  # Filter by average similarity
                     book_stats.append({
                         'id': book.id,
                         'title': book.title,
@@ -85,9 +85,10 @@ async def search_books_function(query):
                 print(f"Warning: Book ID {book_id} not found in mapping")
                 continue
 
-    # Sort and return top 10 by average similarity and standard deviation
-    return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))
-
+    # 7. Return sorted results based on sort_option
+    if sort_option == 'high_to_low':
+        return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
+    elif sort_option == 'low_to_high':
+        return sorted(book_stats, key=lambda x: (x['average_similarity'], -x['std_dev']))  # Sort low to high
     
-    
-    
+    return book_stats

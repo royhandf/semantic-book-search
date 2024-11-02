@@ -34,6 +34,7 @@ def logout():
 
 @main.route('/books/search', methods=['GET'])
 async def search():
+    sort_option = request.args.get('sort', 'high_to_low')
     query = request.args.get('query', '')
     page = request.args.get('page', 1, type=int)
     per_page = 12
@@ -42,12 +43,17 @@ async def search():
         flash("Please enter a search query.", "error")
         return redirect(request.referrer or url_for('main.index'))
     
-    all_results = await search_books_function(query)
+    all_results = await search_books_function(query, sort_option)
+    
+    session['search_histories'] = [book for book in all_results[:10]]
+    
     total_results = len(all_results)
     total_pages = ceil(total_results / per_page)
 
+    # Calculate start and end page for pagination
     start_page = max(1, page - 2)
     end_page = min(total_pages, page + 2)
+
     page_range = list(range(start_page, end_page + 1))
 
     start_idx = (page - 1) * per_page
@@ -61,15 +67,26 @@ async def search():
         current_page=page,
         total_pages=total_pages,
         total_results=total_results,
-        page_range=page_range
+        page_range=page_range,
+        sort_option=sort_option,
+        start_page=start_page, 
+        end_page=end_page       
     )
-    
+
     
 @main.route('/books/<int:id>', methods=['GET'])
 def book_detail(id):
     book = Book.get_by_id(id)
-    if book:
-        return render_template('book_detail.html', book=book)
+    if not book:
+        flash("Book not found", "error")
+        return redirect(url_for('main.index'))
+
+    # Ambil hasil pencarian dari sesi
+    related_books = session.get('search_histories', [])
+    # Hapus buku yang sedang dilihat dari daftar rekomendasi
+    related_books = [b for b in related_books if b['id'] != id]
+
+    return render_template('book_detail.html', book=book, related_books=related_books)
 
 # dashboard/books
 @main.route('/dashboard/books', methods=['GET'])
