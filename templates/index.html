@@ -14,19 +14,15 @@
   <body>
     <nav class="bg-white py-4 px-6 shadow-sm">
       <div class="max-w-screen-xl flex items-center justify-between mx-auto p-2 gap-3">
-        <!-- Logo and Nav Links -->
         <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
           <img class="w-8 h-8" src="{{ url_for('static', filename='images/book.png') }}" alt="logo" width="32" height="32" />
           <span class="self-center text-2xl font-semibold whitespace-nowrap">Revelare</span>
         </a>
 
-        <!-- Sign in -->
         <button data-modal-target="signin" data-modal-toggle="signin" class="bg-violet-600 text-white px-6 py-2 rounded-lg hover:bg-violet-700 transition duration-300">Sign In</button>
-        <!-- Main modal -->
         <div id="signin" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
           <div class="relative p-4 w-full max-w-md max-h-full">
             <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-              <!-- Modal header -->
               <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
                 <h3 class="text-lg font-semibold text-gray-900">Sign In to Your Account</h3>
                 <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-toggle="signin">
@@ -36,7 +32,6 @@
                   <span class="sr-only">Close modal</span>
                 </button>
               </div>
-              <!-- Modal body -->
               <div class="p-4 md:p-5">
                 <form class="space-y-4" method="post" action="{{ url_for('main.signin') }}">
                   <div>
@@ -56,8 +51,7 @@
       </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="max-w-7xl mx-auto px-6 h-[80vh] flex flex-col justify-center items-center">
+    <section class="max-w-7xl mx-auto pb-10 px-6 h-[80vh] flex flex-col justify-center items-center">
       <div class="text-center">
         <h1 class="text-4xl sm:text-5xl md:text-5xl lg:text-5xl xl:text-6xl mb-3 text-center text-gray-800 font-black leading-10">
           Discover Books with <span class="text-violet-800">Revelare</span>
@@ -65,38 +59,14 @@
         <p class="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
           Effortlessly connect with the books you love! Use our semantic search to browse titles, authors, or keywords and access a rich library of reading material instantly.
         </p>
-        <!-- Search Bar -->
         <div class="max-w-2xl mx-auto relative">
           <form action="{{ url_for('main.search') }}" method="get">
-            <input type="text" name="query" class="w-full px-6 py-4 rounded-full shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent" placeholder="Search for books..." />
+            <input type="text" name="query" class="w-full px-6 py-4 rounded-full shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent" placeholder="Search for books..." />
             <button type="submit" class="absolute right-2 top-2 bg-violet-700 text-white px-8 py-2 rounded-full hover:bg-violet-800 transition duration-300">Search</button>
           </form>
         </div>
       </div>
     </section>
-
-    <!-- -->
-
-    <!-- Buku Baru -->
-    <section class="container mx-auto p-6">
-      <div class="mx-auto lg:max-w-7xl sm:max-w-full">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">New Books</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {% for book in books %}
-          <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-            <img src="{{ book.cover }}" alt="{{ book.title }}" class="w-full h-48 object-cover object-center" />
-            <div class="p-4">
-              <h3 class="text-lg font-semibold text-gray-800">{{ book.title }}</h3>
-              <p class="text-sm text-gray-600">{{ book.author }}</p>
-              <p class="text-sm text-gray-600">{{ book.year }}</p>
-              <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="block mt-2 text-sm font-medium text-violet-700 hover:text-violet-800">Read More</a>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-    </section>
-
 
     <script src="{{ url_for('static', filename='js/flowbite.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/notyf.min.js') }}"></script>
