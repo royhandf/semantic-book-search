@@ -1,10 +1,13 @@
-from flask import Blueprint, render_template, redirect, url_for, jsonify, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, jsonify, flash, request
 from models.book import Book
-from math import ceil
-from controllers.book_controller import add_book_function, get_book_download_link, edit_book_function, delete_book_function
+from models.user import User
+from controllers.book_controller import get_all_books, add_book_function, edit_book_function, delete_book_function
 from controllers.search_controller import search_books_function
-from controllers.user_controller import signin_user_function
-from flask_login import login_required
+from controllers.user_controller import signin_user_function, signup_user_function
+from extensions import redis_client, db
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
+import json
 
 main = Blueprint('main', __name__)
 
@@ -12,97 +15,133 @@ main = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
-@main.route('/signin', methods=['GET', 'POST'])
+@main.route('/api/signin', methods=['POST'])
 def signin():
-    if request.method == 'POST':
-        user = signin_user_function()
-        
-        if user:
-            flash("You are now signed in!", "success")
-            return redirect(url_for('main.books')) 
-        
-        flash("Sign in failed. Please check your email and password.", "error")
-        return redirect(url_for('main.index')) 
-    
-    return render_template('index.html') 
+    return signin_user_function()
+
+@main.route('/api/signup', methods=['POST'])
+def signup():
+    return signup_user_function()
     
 @main.route('/logout')
 def logout():
-    session.pop('user', None)
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('main.index'))
-
-@main.route('/books/search', methods=['GET'])
-async def search():
-    query = request.args.get('query', '')
+    return jsonify({
+        "status": "success",
+        "message": "You have been logged out."
+    }), 200
+    
+@main.route('/api/books/search', methods=['GET'])
+def search_books():
+    query = request.args.get('query', '').strip()
     page = request.args.get('page', 1, type=int)
-    per_page = 12
     
     if not query:
-        flash("Please enter a search query.", "error")
-        return redirect(request.referrer or url_for('main.index'))
+        return jsonify({
+            "status": "error",
+            "message": "Query parameter is required."
+        }), 400
+
+    try:
+        all_results = search_books_function(query, page)
+        
+        cache_key = "related_books"
+        redis_client.setex(cache_key, 3600, json.dumps(all_results['results'][:8]))
+                
+        return jsonify({
+            "status": "success",
+            "query": query,
+            "total_results": all_results["total_results"],
+            "total_pages": all_results["total_pages"],
+            "current_page": all_results["current_page"],
+            "data": all_results["results"]
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
     
-    all_results = await search_books_function(query)
-    
-    session['search_histories'] = [book for book in all_results[:10]]
-    
-    total_results = len(all_results)
-    total_pages = ceil(total_results / per_page)
-
-    # Calculate start and end page for pagination
-    start_page = max(1, page - 2)
-    end_page = min(total_pages, page + 2)
-
-    page_range = list(range(start_page, end_page + 1))
-
-    start_idx = (page - 1) * per_page
-    end_idx = start_idx + per_page
-    paginated_results = all_results[start_idx:end_idx]
-
-    return render_template(
-        'search_results.html',
-        results=paginated_results,
-        query=query,
-        current_page=page,
-        total_pages=total_pages,
-        total_results=total_results,
-        page_range=page_range,
-        start_page=start_page, 
-        end_page=end_page       
-    )
-
-    
-@main.route('/books/<int:id>', methods=['GET'])
+@main.route('/api/books/<int:id>', methods=['GET'])
 def book_detail(id):
     book = Book.get_by_id(id)
     if not book:
-        flash("Book not found", "error")
-        return redirect(url_for('main.index'))
+        return jsonify({"error": "Book not found"}), 404
+    
+    get_related_books_key = redis_client.get("related_books")
 
-    # Ambil hasil pencarian dari sesi
-    related_books = session.get('search_histories', [])
-    # Hapus buku yang sedang dilihat dari daftar rekomendasi
-    related_books = [b for b in related_books if b['id'] != id]
+    related_books = []
+    if get_related_books_key:
+        related_books = json.loads(get_related_books_key)
+        
+    try:
+        related_books = [b for b in related_books if b['id'] != id]
+    
+        return jsonify({
+            "status": "success",
+            "data": book.data,
+            "related_books": related_books
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
-    return render_template('book_detail.html', book=book, related_books=related_books)
+@main.route('/api/dashboard/books', methods=['GET'])
+@jwt_required()
+def books():
+    page = request.args.get('page', 1, type=int)
+    per_page = 5
 
-# dashboard/books
-@main.route('/dashboard/books', methods=['GET'])
-@login_required
-async def books():
-    books = await Book.get_all() 
-    user = session.get('user') 
-    return render_template('books.html', books=books, user=user)
-
-@main.route('/dashboard/book/create', methods=['POST'])
+    user_id = get_jwt_identity()
+    
+    user = User.query.filter_by(id=user_id).first() 
+    
+    if user.role != 'admin':
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized access"
+        }), 403
+    
+    try:
+        all_results = get_all_books(page, per_page)
+        
+        return jsonify({
+            "status": "success",
+            "total_results": all_results["total_results"],
+            "total_pages": all_results["total_pages"],
+            "current_page": all_results["current_page"],
+            "data": all_results["results"]
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+        
+@main.route('/api/dashboard/book/create', methods=['POST'])
 def add_book():
     try:
-        add_book_function()  
-        flash("Book successfully added!", "success")
+        return add_book_function()
+        
+    except IntegrityError as e: 
+        db.session.rollback()  
+        if '1062' in str(e.orig):
+            return jsonify({
+                "status": "error",
+                "message": "A book with the same title already exists."
+            }), 400 
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Database integrity error: " + str(e)
+            }), 500  
     except Exception as e:
-        flash(f"An error occurred while adding the book: {str(e)}", "error")
-    
-    return redirect(url_for('main.books'))
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500  
     
 @main.route('/dashboard/book/edit/<int:id>', methods=['POST'])
 def edit_book(id):
@@ -114,27 +153,25 @@ def edit_book(id):
         flash(f"An error occurred while editing the book: {str(e)}", "error")
     return redirect(url_for('main.books'))
 
-@main.route('/dashboard/book/delete/<int:id>', methods=['POST'])
+@main.route('/api/dashboard/book/delete/<int:id>', methods=['DELETE'])
 def delete_book(id):
     try:
         book = Book.get_by_id(id)
+        if not book:
+            return jsonify({'status': 'error', 'message': 'Book not found'}), 404
+        
         delete_book_function(book)
-        flash("Book successfully deleted!", "success")
+        return jsonify({'status': 'success', 'message': 'Book successfully deleted'}), 200
     except Exception as e:
-        flash(f"An error occurred while deleting the book: {str(e)}", "error")
-    return redirect(url_for('main.books'))
-
-@main.route('/dashboard/book/<int:book_id>/download', methods=['GET'])
-def download_pdf(book_id):
-    book = Book.get_by_id(book_id)
-    if book:
-        pdf_link = get_book_download_link(book)
-        return redirect(pdf_link) 
-    return jsonify({'error': 'Book not found'}), 404
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @main.route('/dashboard/book/<int:id>/details', methods=['GET'])
 def get_description_contents(id):
     data = Book.get_description_contents_by_id(id)
     if data:
         return jsonify(data)
-    return jsonify({'error': 'Book not found'}), 404
+    return jsonify({"error": "Book not found"}), 404
+
+
+
+

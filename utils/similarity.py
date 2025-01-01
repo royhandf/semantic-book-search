@@ -1,11 +1,9 @@
 from nltk.corpus import wordnet as wn
-from functools import lru_cache
 
-@lru_cache(maxsize=1000)  # Menyimpan hingga 1000 hasil untuk menghemat memori
 def wu_palmer_similarity(synset1, synset2):
     similarity = synset1.wup_similarity(synset2)
     if similarity is None:
-        return 0  # 0 score jika tidak ada kemiripan
+        return 0  
     return similarity
 
 def get_synsets(word):

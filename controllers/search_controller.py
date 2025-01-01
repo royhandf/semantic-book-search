@@ -1,28 +1,18 @@
-from utils.preprocessing import preprocessing
+from utils.preprocessing import cached_preprocessing
 from utils.weighting import calculate_tfidf_top_terms
 from utils.similarity import calculate_similarity
 from models.book import Book
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
 import numpy as np
-import asyncio
-from functools import lru_cache
+from math import ceil
 
-# Cache untuk preprocessing
-@lru_cache(maxsize=1000)
-def cached_preprocessing(text):
-    return preprocessing(text)
-
-async def search_books_function(query):    
+def search_books_function(query, page=1, per_page=12):    
     # 1. Preprocessing query
-    processed_query = set(cached_preprocessing(query))
+    processed_query = cached_preprocessing(query)
     
     # 2. Query database
-    books = await asyncio.to_thread(lambda: (
-        Book.query
-        .options(joinedload(Book.authors), joinedload(Book.editors))
-        .all()
-    ))
+    books = Book.query.options(joinedload(Book.authors), joinedload(Book.editors)).all()
     
     # 3. Preprocessing metadata
     processed_metadata_books = []
@@ -30,7 +20,7 @@ async def search_books_function(query):
     
     for idx, book in enumerate(books):
         # Menggunakan format key yang sama dengan yang dihasilkan calculate_tfidf_top_terms
-        book_id = f'Buku {idx+1}'  # Sesuaikan dengan format yang diharapkan
+        book_id = f'Buku {idx+1}'
         book_mapping[book_id] = idx
         
         authors = ' '.join(author.name for author in book.authors)
@@ -46,7 +36,7 @@ async def search_books_function(query):
         processed_metadata_books.append(processed_book)
     
     # 4. Calculate TF-IDF
-    top_terms = await asyncio.to_thread(calculate_tfidf_top_terms, processed_metadata_books)
+    top_terms = calculate_tfidf_top_terms(processed_metadata_books)
     
     # 5. Calculate similarities
     book_similarities = defaultdict(list)
@@ -73,7 +63,7 @@ async def search_books_function(query):
                 book = books[book_idx]
 
                 avg_similarity = np.mean(similarities)
-                if avg_similarity >= 0.5:  # Filter by average similarity
+                if avg_similarity >= 0.5: 
                     book_stats.append({
                         'id': book.id,
                         'title': book.title,
@@ -85,5 +75,22 @@ async def search_books_function(query):
                 print(f"Warning: Book ID {book_id} not found in mapping")
                 continue
 
-    # 7. Return sorted results based on sort_option
-    return sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
+    book_lists = sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
+
+    # Menghitung total hasil dan halaman
+    total_results = len(book_lists)
+    total_pages = ceil(total_results / per_page)
+
+    # Menentukan start dan end index untuk pagination
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_results = book_lists[start_idx:end_idx]
+
+    # Mengembalikan hasil dalam format yang diinginkan
+    return {
+        "query": query,
+        "total_results": total_results,
+        "total_pages": total_pages,
+        "current_page": page,
+        "results": paginated_results,
+    }

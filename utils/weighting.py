@@ -1,4 +1,6 @@
 import math
+import json
+from extensions import redis_client
         
 def compute_tf(term, document):
     return document.count(term) / len(document) if document else 0
@@ -12,6 +14,21 @@ def compute_tfidf(tf, idf):
     
 # Fungsi untuk menghitung TF-IDF dan mengambil N term teratas
 def calculate_tfidf_top_terms(processed_metadata_books, top_n=3):
+    # Gunakan metadata buku sebagai key cache
+    metadata_key = json.dumps(processed_metadata_books, sort_keys=True)
+    
+    # Cek cache Redis
+    cached_result = redis_client.get(metadata_key)
+    if cached_result:
+        # Jika ada cache, ambil data dan sesuaikan dengan top_n
+        tfidf_books = json.loads(cached_result)
+        result = {}
+        # Ambil hanya top_n data dari 10 data teratas yang disimpan
+        for book_id, terms in tfidf_books.items():
+            result[book_id] = terms[:top_n]
+        return result
+    
+    # Jika tidak ada cache, lakukan perhitungan TF-IDF
     documents = [book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"]
                  for book in processed_metadata_books]
 
@@ -29,13 +46,20 @@ def calculate_tfidf_top_terms(processed_metadata_books, top_n=3):
             tfidf_value = compute_tfidf(tf_book, idf)
             tfidf_data.append({
                 "term": term,
-                # "tf": round(tf_book, 4),
-                # "idf": round(idf, 4),
                 "tfidf": round(tfidf_value, 4)
             })
 
-        # Ambil nilai TF-IDF tertinggi untuk setiap buku
-        top_terms = sorted(tfidf_data, key=lambda x: x["tfidf"], reverse=True)[:top_n]
+        # Ambil nilai TF-IDF tertinggi untuk setiap buku, simpan 10 data teratas
+        top_terms = sorted(tfidf_data, key=lambda x: x["tfidf"], reverse=True)[:10]
         tfidf_books[f"Buku {i+1}"] = top_terms
+    
+    with redis_client.pipeline() as pipe:
+        pipe.set(metadata_key, json.dumps(tfidf_books), ex=3600)  # TTL 1 jam
+        pipe.execute()
 
-    return tfidf_books
+    # Kembalikan hasil yang sesuai dengan top_n
+    result = {}
+    for book_id, terms in tfidf_books.items():
+        result[book_id] = terms[:top_n]
+
+    return result
