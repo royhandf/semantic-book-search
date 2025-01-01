@@ -1,9 +1,11 @@
-from flask import request, flash, current_app, url_for
+from flask import request, current_app, jsonify
 from werkzeug.utils import secure_filename
 from extensions import db
 from models.book import Book
 from models.author import Author
 from models.editor import Editor
+from math import ceil
+from datetime import datetime
 from urllib.parse import urlparse
 import os
 
@@ -17,8 +19,8 @@ def allowed_file_pdf(filename):
 
 def add_book_function():
     if request.method == 'POST':
-        title = request.form['title']
-        publisher = request.form['publisher']
+        title = request.form.get('title')
+        publisher = request.form.get('publisher')
         published = request.form.get('published')
         
         if published and published.isdigit(): 
@@ -26,32 +28,32 @@ def add_book_function():
         else:
             published = None  
             
-        isbn = request.form['isbn']
+        isbn = request.form.get('isbn')
         description = request.form.get('description', '')
         table_of_contents = request.form.get('table_of_contents', '')
         pdf = request.files['pdf_link']
         image_cover = request.files['cover_link']
         
-        if image_cover.filename == '':
-            flash('No selected file')
-            return None
+        if image_cover.filename == '' or pdf.filename == '':    
+            return jsonify({'error': 'No selected file'}), 400
         
-        if pdf.filename == '':
-            flash('No selected file')
-            return None
+        if not allowed_file_image(image_cover.filename) or not allowed_file_pdf(pdf.filename):
+            return jsonify({'error': 'File type not allowed'}), 400
         
-        if not allowed_file_image(image_cover.filename):
-            flash('File type not allowed')
-            return None
+        if len(image_cover.read()) > current_app.config['MAX_IMAGE_LENGTH']:
+            return jsonify({'error': 'File size too large. Max size is 2 MB'}), 400
         
-        if not allowed_file_pdf(pdf.filename):
-            flash('File type not allowed')
-            return None
+        if len(pdf.read()) > current_app.config['MAX_PDF_LENGTH']:
+            return jsonify({'error': 'File size too large. Max size is 50 MB'}), 400
         
-        image_filename = secure_filename(image_cover.filename)
-        pdf_filename = secure_filename(pdf.filename)
+        image_cover.seek(0)
+        pdf.seek(0)
         
-        # Ensure the directory exists
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        
+        image_filename = f"{timestamp}_{secure_filename(image_cover.filename)}"
+        pdf_filename = f"{timestamp}_{secure_filename(pdf.filename)}"
+        
         upload_folder_image = os.path.join(current_app.root_path, 'static/uploads/images')
         os.makedirs(upload_folder_image, exist_ok=True)
         
@@ -64,8 +66,8 @@ def add_book_function():
         pdf_full_path = os.path.join(upload_folder_pdf, pdf_filename)
         pdf.save(pdf_full_path)
         
-        image_filepath = os.path.join('uploads', 'images', image_filename).replace('\\', '/')
-        pdf_filepath = os.path.join('uploads', 'pdfs', pdf_filename).replace('\\', '/')
+        image_filepath = os.path.join('static/uploads', 'images', image_filename).replace('\\', '/')
+        pdf_filepath = os.path.join('static/uploads', 'pdfs', pdf_filename).replace('\\', '/')
         
         book = Book(
             title=title,
@@ -78,56 +80,44 @@ def add_book_function():
             cover_link=image_filepath
         )
         
-        book.save()
-        
+        db.session.add(book)
+        db.session.commit()             
+             
         author_names = request.form.get('authors', '').split(';')
         for name in author_names:
             name = name.strip()
             if name:
                 author = Author(name=name, book_id=book.id)
-                db.session.add(author)  # Tambahkan author ke session
+                db.session.add(author) 
 
-        # Menyimpan editors
         editor_names = request.form.get('editors', '').split(';')
         for name in editor_names:
             name = name.strip()
             if name:
                 editor = Editor(name=name, book_id=book.id)
-                db.session.add(editor)  # Tambahkan editor ke session
+                db.session.add(editor)
             
-        # Commit semua perubahan (authors dan editors)
         db.session.commit()
 
-        # Data untuk response
-        data = {
-            'id': book.id,
-            'title': book.title,
-            'publisher': book.publisher,
-            'published': book.published,
-            'description': book.description,
-            'isbn': book.isbn,
-            'table_of_contents': book.table_of_contents,
-            'pdf_link': book.pdf_link,
-            'cover_link': book.cover_link,
-            'authors': [author.name for author in book.authors],
-            'editors': [editor.name for editor in book.editors]
-        }
-
-        return data
-    
-def is_external_link(url):
-    parsed_url = urlparse(url)
-    return parsed_url.netloc and parsed_url.netloc != '127.0.0.1'
-
-def get_book_download_link(book):
-    pdf_link = book.pdf_link
-    if is_external_link(pdf_link):
-        return pdf_link  # Link eksternal
-    else:
-        return url_for('static', filename=f'uploads/pdfs/{pdf_link.split("/")[-1]}')
-
+        return jsonify({
+            "status": "success",
+            "data": {
+                'id': book.id,
+                'title': book.title,
+                'publisher': book.publisher,
+                'published': book.published,
+                'description': book.description,
+                'isbn': book.isbn,
+                'table_of_contents': book.table_of_contents,    
+                "pdf_link": f"{request.host_url}{book.pdf_link}",
+                "cover_link": f"{request.host_url}{book.cover_link}",
+                'authors': [author.name for author in book.authors],
+                'editors': [editor.name for editor in book.editors]
+            }
+        }), 201
+        
 def edit_book_function(book):
-    if request.method == "POST":
+    if request.method == 'POST':
         title = request.form['title']
         publisher = request.form['publisher']
         published = request.form.get('published')
@@ -226,12 +216,51 @@ def edit_book_function(book):
         return data
 
 def delete_book_function(book):
-    if book.pdf_link and os.path.exists(os.path.join(current_app.root_path, book.pdf_link)):
-        os.remove(os.path.join(current_app.root_path, book.pdf_link))
-    
-    if book.cover_link and os.path.exists(os.path.join(current_app.root_path, book.cover_link)):
-        os.remove(os.path.join(current_app.root_path, book.cover_link))
-        
+    pdf_path = os.path.join(current_app.root_path, book.pdf_link)
+    cover_path = os.path.join(current_app.root_path, book.cover_link)
+
+    if book.pdf_link and os.path.exists(pdf_path):
+        try:
+            os.remove(pdf_path)
+        except Exception as e:
+            return jsonify({'status': 'error','message': f"Error deleting PDF file: {e}"}), 500
+    else:
+        return jsonify({'status': 'error','message': 'PDF not found or invalid path'}), 404
+
+    if book.cover_link and os.path.exists(cover_path):
+        try:
+            os.remove(cover_path)
+        except Exception as e:
+            return jsonify({'status': 'error','message': f"Error deleting cover file: {e}"}), 500
+    else:
+        return jsonify({'status': 'error','message': 'Cover not found or invalid path'}), 404
+
     db.session.delete(book)
     db.session.commit()
 
+def get_all_books(page=1, per_page=5):
+    books = Book.query.order_by(Book.created_at.desc()).all()   
+
+    total_results = len(books)
+    total_pages = ceil(total_results / per_page)
+    
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_results = books[start_idx:end_idx]
+    
+    def is_full_url(url):
+        return urlparse(url).scheme in ["http", "https"]
+    
+    return {
+        'total_results': total_results,
+        'total_pages': total_pages,
+        'current_page': page,
+        'results': [
+            {
+                **book.data,
+                "pdf_link": book.pdf_link if is_full_url(book.pdf_link) else f"{request.host_url}{book.pdf_link}",
+                "cover_link": book.cover_link if is_full_url(book.cover_link) else f"{request.host_url}{book.cover_link}",
+            }
+            for book in paginated_results
+        ]
+    }

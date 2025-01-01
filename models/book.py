@@ -1,5 +1,4 @@
 from extensions import db
-import asyncio
 
 class Book(db.Model):
     __tablename__ = 'books'
@@ -39,9 +38,8 @@ class Book(db.Model):
         db.session.commit()
 
     @classmethod
-    async def get_all(cls):
-        # Menggunakan asyncio.to_thread untuk menjalankan fungsi sinkron
-        return await asyncio.to_thread(cls._fetch_all)
+    def get_all(cls):
+        return cls._fetch_all()
 
     @classmethod
     def _fetch_all(cls):
