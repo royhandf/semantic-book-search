@@ -17,5 +17,5 @@ class Config:
     UPLOAD_FOLDER_PDF = os.getenv('UPLOAD_FOLDER_PDF')
     ALLOWED_EXTENSIONS_IMAGE = set(os.getenv('ALLOWED_EXTENSIONS_IMAGE', 'png,jpg,jpeg').split(','))
     ALLOWED_EXTENSIONS_PDF = set(os.getenv('ALLOWED_EXTENSIONS_PDF', 'pdf').split(','))
-    MAX_IMAGE_LENGTH = int(os.getenv('MAX_IMAGE_LENGTH', 2 * 1024 * 1024))  # 2MB default
-    MAX_PDF_LENGTH = int(os.getenv('MAX_PDF_LENGTH', 50 * 1024 * 1024))  # 50MB default
+    MAX_IMAGE_LENGTH = int(os.getenv('MAX_IMAGE_LENGTH', 2 * 1024 * 1024))  
+    MAX_PDF_LENGTH = int(os.getenv('MAX_PDF_LENGTH', 50 * 1024 * 1024)) 

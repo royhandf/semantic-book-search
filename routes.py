@@ -7,6 +7,7 @@ from controllers.user_controller import signin_user_function, signup_user_functi
 from extensions import redis_client, db
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
+from urllib.parse import urlparse
 import json
 
 main = Blueprint('main', __name__)
@@ -91,27 +92,20 @@ def book_detail(id):
 @main.route('/api/dashboard/books', methods=['GET'])
 @jwt_required()
 def books():
-    page = request.args.get('page', 1, type=int)
-    per_page = 5
-
     user_id = get_jwt_identity()
-    
-    user = User.query.filter_by(id=user_id).first() 
-    
+    user = User.query.filter_by(id=user_id).first()
+
     if user.role != 'admin':
         return jsonify({
             "status": "error",
             "message": "Unauthorized access"
         }), 403
-    
+
     try:
-        all_results = get_all_books(page, per_page)
-        
+        all_results = get_all_books()
+
         return jsonify({
             "status": "success",
-            "total_results": all_results["total_results"],
-            "total_pages": all_results["total_pages"],
-            "current_page": all_results["current_page"],
             "data": all_results["results"]
         }), 200
     except Exception as e:
@@ -119,9 +113,20 @@ def books():
             "status": "error",
             "message": str(e)
         }), 500
+
         
-@main.route('/api/dashboard/book/create', methods=['POST'])
+@main.route('/api/dashboard/books/create', methods=['POST'])
+@jwt_required()
 def add_book():
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+
+    if user.role != 'admin':
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized access"
+        }), 403
+
     try:
         return add_book_function()
         
@@ -143,17 +148,53 @@ def add_book():
             "message": str(e)
         }), 500  
     
-@main.route('/dashboard/book/edit/<int:id>', methods=['POST'])
+@main.route('/api/dashboard/books/edit/<int:id>', methods=['GET', 'PUT'])
+@jwt_required()
 def edit_book(id):
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+
+    if user.role != 'admin':
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized access"
+        }), 403
+
     try:  
         book = Book.get_by_id(id)
-        edit_book_function(book) 
-        flash("Book successfully updated!", "success")
-    except Exception as e:
-        flash(f"An error occurred while editing the book: {str(e)}", "error")
-    return redirect(url_for('main.books'))
+        
+        def is_full_url(url):
+            return urlparse(url).scheme in ["http", "https"]
 
-@main.route('/api/dashboard/book/delete/<int:id>', methods=['DELETE'])
+        if request.method == 'GET':  
+            return jsonify({
+                "status": "success",
+                "data": {
+                    **book.data,
+                    "pdf_link": book.pdf_link if is_full_url(book.pdf_link) else f"{request.host_url}{book.pdf_link}",
+                    "cover_link": book.cover_link if is_full_url(book.cover_link) else f"{request.host_url}{book.cover_link}",
+                }
+            }), 200
+        return edit_book_function(book)
+    except IntegrityError as e:
+        db.session.rollback()
+        if '1062' in str(e.orig):
+            return jsonify({
+                "status": "error",
+                "message": "A book with the same title already exists."
+            }), 400
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Database integrity error: " + str(e)
+            }), 500
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@main.route('/api/dashboard/books/delete/<int:id>', methods=['DELETE'])
 def delete_book(id):
     try:
         book = Book.get_by_id(id)
@@ -165,12 +206,7 @@ def delete_book(id):
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@main.route('/dashboard/book/<int:id>/details', methods=['GET'])
-def get_description_contents(id):
-    data = Book.get_description_contents_by_id(id)
-    if data:
-        return jsonify(data)
-    return jsonify({"error": "Book not found"}), 404
+
 
 
 
