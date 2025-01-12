@@ -4,11 +4,9 @@ import json
 from extensions import redis_client
 import hashlib
 
-URL_PATTERN = re.compile(r'http\S+|www\S+|https\S+')
 CLEAN_PATTERN = re.compile(r'\d+|\b\w\b|[IVXLCDM]+|\W+|\b[A-Z]{2,}(?:-[A-Z]+)+\b', flags=re.MULTILINE)
 
 def preprocessing(text):    
-    text = URL_PATTERN.sub(' ', text)
     text = CLEAN_PATTERN.sub(' ', text.lower()).strip()
     text = re.sub(r'\s+', ' ', text)
 
