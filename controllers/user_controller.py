@@ -57,13 +57,18 @@ def signup_user_function():
         db.session.rollback()
         return jsonify({"error": "Failed to register user"}), 500
     
+    # Langsung login setelah berhasil registrasi
+    access_token = create_access_token(identity=str(new_user.id), expires_delta=timedelta(days=1))
+    username = new_user.name.replace(" ", "+")
+    
     return jsonify({
         "status": "success",
-        "message": "User registered successfully",
+        "token": access_token,
         "user": {
             "id": new_user.id,
             "name": new_user.name,
             "email": new_user.email,
+            "avatar": f'https://ui-avatars.com/api/?name={username}&size=128&background=random',
             "role": new_user.role
         }
     }), 201
