@@ -43,20 +43,10 @@ class Book(db.Model):
 
     @classmethod
     def _fetch_all(cls):
-        # Mengambil semua buku dari database
-        r = cls.query.all()  # Mengambil semua entri buku
+        r = cls.query.all() 
         return [book.data for book in r]
 
     @classmethod
     def get_by_id(cls, id):
         return cls.query.get(id)
     
-    @classmethod
-    def get_description_contents_by_id(cls, id):
-        book = cls.query.get(id)
-        if book:
-            return {
-                'description': book.description if book.description else '',
-                'table_of_contents': book.table_of_contents.split('\n') if book.table_of_contents else []
-            }
-        return None
