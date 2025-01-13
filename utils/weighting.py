@@ -1,6 +1,7 @@
 import math
 import json
 from extensions import redis_client
+import hashlib
         
 def compute_tf(term, document):
     return document.count(term) / len(document) if document else 0
@@ -14,8 +15,7 @@ def compute_tfidf(tf, idf):
     
 # Fungsi untuk menghitung TF-IDF dan mengambil N term teratas
 def calculate_tfidf_top_terms(processed_metadata_books, top_n=3):
-    # Gunakan metadata buku sebagai key cache
-    metadata_key = json.dumps(processed_metadata_books, sort_keys=True)
+    metadata_key = hashlib.sha256(json.dumps(processed_metadata_books).encode('utf-8')).hexdigest()
     
     # Cek cache Redis
     cached_result = redis_client.get(metadata_key)
@@ -28,7 +28,6 @@ def calculate_tfidf_top_terms(processed_metadata_books, top_n=3):
             result[book_id] = terms[:top_n]
         return result
     
-    # Jika tidak ada cache, lakukan perhitungan TF-IDF
     documents = [book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"]
                  for book in processed_metadata_books]
 
@@ -54,7 +53,7 @@ def calculate_tfidf_top_terms(processed_metadata_books, top_n=3):
         tfidf_books[f"Buku {i+1}"] = top_terms
     
     with redis_client.pipeline() as pipe:
-        pipe.set(metadata_key, json.dumps(tfidf_books), ex=3600)  # TTL 1 jam
+        pipe.set(metadata_key, json.dumps(tfidf_books), ex=86400)  # Cache selama 1 hari
         pipe.execute()
 
     # Kembalikan hasil yang sesuai dengan top_n
