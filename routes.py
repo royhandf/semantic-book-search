@@ -4,11 +4,10 @@ from models.user import User
 from controllers.book_controller import get_all_books, add_book_function, edit_book_function, delete_book_function
 from controllers.search_controller import search_books_function
 from controllers.user_controller import signin_user_function, signup_user_function
-from extensions import redis_client, db
+from extensions import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
 from urllib.parse import urlparse
-import json
 
 main = Blueprint('main', __name__)
 
@@ -44,17 +43,14 @@ def search_books():
 
     try:
         all_results = search_books_function(query, page)
-        
-        cache_key = "related_books"
-        redis_client.setex(cache_key, 3600, json.dumps(all_results['results'][:8]))
-                
+
         return jsonify({
             "status": "success",
             "query": query,
             "total_results": all_results["total_results"],
             "total_pages": all_results["total_pages"],
             "current_page": all_results["current_page"],
-            "data": all_results["results"]
+            "data": all_results["results"],
         }), 200
 
     except Exception as e:
@@ -68,20 +64,11 @@ def book_detail(id):
     book = Book.get_by_id(id)
     if not book:
         return jsonify({"error": "Book not found"}), 404
-    
-    get_related_books_key = redis_client.get("related_books")
-
-    related_books = []
-    if get_related_books_key:
-        related_books = json.loads(get_related_books_key)
-        
+      
     try:
-        related_books = [b for b in related_books if b['id'] != id]
-    
         return jsonify({
             "status": "success",
             "data": book.data,
-            "related_books": related_books
         }), 200
     except Exception as e:
         return jsonify({
