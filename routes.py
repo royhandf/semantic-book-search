@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, jsonify, request
 from models.book import Book
 from models.user import User
 from controllers.book_controller import get_all_books, add_book_function, edit_book_function, delete_book_function
@@ -10,10 +10,6 @@ from sqlalchemy.exc import IntegrityError
 from urllib.parse import urlparse
 
 main = Blueprint('main', __name__)
-
-@main.route('/', methods=['GET'])
-def index():
-    return render_template('index.html')
 
 @main.route('/api/signin', methods=['POST'])
 def signin():
@@ -101,7 +97,6 @@ def books():
             "status": "error",
             "message": str(e)
         }), 500
-
         
 @main.route('/api/dashboard/books/create', methods=['POST'])
 @jwt_required()
@@ -193,9 +188,3 @@ def delete_book(id):
         return jsonify({'status': 'success', 'message': 'Book successfully deleted'}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
-
-
-
-
