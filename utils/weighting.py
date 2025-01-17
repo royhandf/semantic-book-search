@@ -14,18 +14,18 @@ def compute_tfidf(tf, idf):
     return tf * idf
     
 # Fungsi untuk menghitung TF-IDF dan mengambil N term teratas
-def calculate_tfidf_top_terms(processed_metadata_books, top_n=3):
+def calculate_tfidf_top_terms(processed_metadata_books, scenario=3):
     metadata_key = hashlib.sha256(json.dumps(processed_metadata_books).encode('utf-8')).hexdigest()
     
     # Cek cache Redis
     cached_result = redis_client.get(metadata_key)
     if cached_result:
-        # Jika ada cache, ambil data dan sesuaikan dengan top_n
+        # Jika ada cache, ambil data dan sesuaikan dengan scenario
         tfidf_books = json.loads(cached_result)
         result = {}
-        # Ambil hanya top_n data dari 10 data teratas yang disimpan
+        # Ambil hanya scenario data dari 10 data teratas yang disimpan
         for book_id, terms in tfidf_books.items():
-            result[book_id] = terms[:top_n]
+            result[book_id] = terms[:scenario]
         return result
     
     documents = [book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"]
@@ -56,9 +56,9 @@ def calculate_tfidf_top_terms(processed_metadata_books, top_n=3):
         pipe.set(metadata_key, json.dumps(tfidf_books), ex=86400)  # Cache selama 1 hari
         pipe.execute()
 
-    # Kembalikan hasil yang sesuai dengan top_n
+    # Kembalikan hasil yang sesuai dengan scenario
     result = {}
     for book_id, terms in tfidf_books.items():
-        result[book_id] = terms[:top_n]
+        result[book_id] = terms[:scenario]
 
     return result

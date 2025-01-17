@@ -1,21 +1,25 @@
 from nltk.corpus import wordnet as wn
 
 def wu_palmer_similarity(synset1, synset2):
-    similarity = synset1.wup_similarity(synset2)
-    if similarity is None:
-        return 0  
-    return similarity
+    lcs = synset1.lowest_common_hypernyms(synset2)
+    if not lcs:
+        return 0
+    
+    lcs = lcs[0]
+    
+    depth_lcs = lcs.max_depth()
+    depth_synset1 = synset1.max_depth()
+    depth_synset2 = synset2.max_depth()
+    
+    return (2 * depth_lcs) / (depth_synset1 + depth_synset2)
 
 def get_synsets(word):
-    """Mendapatkan synset dari kata hanya untuk POS noun, verb, dan adj."""
-    return (
-        wn.synsets(word, pos=wn.NOUN) + 
-        wn.synsets(word, pos=wn.VERB) + 
-        wn.synsets(word, pos=wn.ADJ)
-    )
+    synsets = wn.synsets(word, pos=wn.NOUN) + wn.synsets(word, pos=wn.VERB) + wn.synsets(word, pos=wn.ADJ)
+    if not synsets:
+        return None  
+    return synsets
 
 def calculate_similarity(query, book):
-    """Menghitung kemiripan menggunakan Wu-Palmer dengan cache dan filter POS."""
     query_synsets = get_synsets(query)
     book_synsets = get_synsets(book)
 
@@ -23,15 +27,10 @@ def calculate_similarity(query, book):
         return 0
 
     best_similarity = 0
-    seen_pairs = set()
 
     for synset1 in query_synsets:
         for synset2 in book_synsets:
-            pair = (synset1, synset2)
-            if pair not in seen_pairs:
-                similarity = wu_palmer_similarity(synset1, synset2)
-                seen_pairs.add(pair)
-                if similarity > best_similarity:
-                    best_similarity = similarity
+            similarity = wu_palmer_similarity(synset1, synset2)
+            best_similarity = max(best_similarity, similarity)  # Pilih kemiripan tertinggi
 
     return best_similarity

@@ -3,15 +3,15 @@ from utils.weighting import calculate_tfidf_top_terms
 from utils.similarity import calculate_similarity
 from models.book import Book
 from collections import defaultdict
-from sqlalchemy.orm import joinedload
 import numpy as np
 from math import ceil
+from sqlalchemy.orm import joinedload
 
-def search_books_function(query, page=1, per_page=12):    
+def search_books_function(query, scenario, page=1, per_page=12):    
     # 1. Preprocessing query
     processed_query = cached_preprocessing(query)
     
-    # 2. Query database
+    # 2. Book database
     books = Book.query.options(joinedload(Book.authors), joinedload(Book.editors)).all()
     
     # 3. Preprocessing metadata
@@ -19,40 +19,45 @@ def search_books_function(query, page=1, per_page=12):
     book_mapping = {} 
     
     for idx, book in enumerate(books):
-        # Menggunakan format key yang sama dengan yang dihasilkan calculate_tfidf_top_terms
         book_id = f'Buku {idx+1}'
         book_mapping[book_id] = idx
-        
-        authors = ' '.join(author.name for author in book.authors)
-        editors = ' '.join(editor.name for editor in book.editors)
-        
+                
         processed_book = {
             "title": cached_preprocessing(book.title),
-            "author": cached_preprocessing(authors),
-            "editor": cached_preprocessing(editors),
+            "author": cached_preprocessing(' '.join(author.name for author in book.authors)),
+            "editor": cached_preprocessing(' '.join(editor.name for editor in book.editors)),
             "publisher": cached_preprocessing(book.publisher),
-            "description": cached_preprocessing(book.description),
+            "description": cached_preprocessing(book.description if book.description else book.table_of_contents),
         }
         processed_metadata_books.append(processed_book)
-    
-    # 4. Calculate TF-IDF
-    top_terms = calculate_tfidf_top_terms(processed_metadata_books)
-    
+        
     # 5. Calculate similarities
     book_similarities = defaultdict(list)
     
-    for book_id, tfidf_data in top_terms.items():
-        terms = {item["term"] for item in tfidf_data}
-        
-        for query_term in processed_query:
-            similarities = [
-                calculate_similarity(query_term, term)
-                for term in terms
-            ]
-            valid_similarities = [s for s in similarities if s is not None]
-            if valid_similarities:
-                book_similarities[book_id].extend(valid_similarities)
-    
+    if scenario == 0:
+         for idx, book in enumerate(processed_metadata_books, start=1):
+            all_terms = book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"]
+            for query in processed_query:
+                similarities = [
+                    calculate_similarity(query, term)
+                    for term in all_terms
+                ]
+                if similarities:
+                    book_similarities[f'Buku {idx}'].extend(similarities)
+    else:
+        # 4. Calculate TF-IDF
+        top_terms = calculate_tfidf_top_terms(processed_metadata_books, scenario)
+        # 5. Calculate similarities
+        for book_id, tfidf_data in top_terms.items():
+            terms = {item["term"] for item in tfidf_data}
+            for query_term in processed_query:
+                similarities = [
+                    calculate_similarity(query_term, term)
+                    for term in terms
+                ]
+                if similarities:
+                    book_similarities[book_id].extend(similarities)
+                                        
     # 6. Calculate statistics
     book_stats = []
     
@@ -71,24 +76,20 @@ def search_books_function(query, page=1, per_page=12):
                         'std_dev': np.std(similarities, ddof=0),
                         'cover': book.cover_link
                     })
-            except KeyError as e:
+            except KeyError:
                 print(f"Warning: Book ID {book_id} not found in mapping")
                 continue
 
     book_lists = sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
-
+    
     # Menghitung total hasil dan halaman
     total_results = len(book_lists)
     total_pages = ceil(total_results / per_page)
-
-    # Menentukan start dan end index untuk pagination
     start_idx = (page - 1) * per_page
     end_idx = start_idx + per_page
     paginated_results = book_lists[start_idx:end_idx]
 
-    # Mengembalikan hasil dalam format yang diinginkan
     return {
-        "query": query,
         "total_results": total_results,
         "total_pages": total_pages,
         "current_page": page,

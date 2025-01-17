@@ -33,8 +33,9 @@ def logout():
 @main.route('/api/books/search', methods=['GET'])
 def search_books():
     query = request.args.get('query', '').strip()
+    scenario = request.args.get('scenario', 3, type=int)
     page = request.args.get('page', 1, type=int)
-    
+        
     if not query:
         return jsonify({
             "status": "error",
@@ -42,7 +43,7 @@ def search_books():
         }), 400
 
     try:
-        all_results = search_books_function(query, page)
+        all_results = search_books_function(query, scenario, page)
 
         return jsonify({
             "status": "success",
