@@ -11,10 +11,14 @@ def wu_palmer_similarity(synset1, synset2):
     depth_synset1 = synset1.max_depth()
     depth_synset2 = synset2.max_depth()
     
-    return (2 * depth_lcs) / (depth_synset1 + depth_synset2)
+    denominator = depth_synset1 + depth_synset2
+    if denominator == 0:
+        return 0
+        
+    return (2 * depth_lcs) / denominator
 
 def get_synsets(word):
-    synsets = wn.synsets(word, pos=wn.NOUN) + wn.synsets(word, pos=wn.VERB) + wn.synsets(word, pos=wn.ADJ)
+    synsets = wn.synsets(word, pos=wn.NOUN) + wn.synsets(word, pos=wn.VERB) + wn.synsets(word, pos=wn.ADJ) + wn.synsets(word, pos=wn.ADV)
     if not synsets:
         return None  
     return synsets
@@ -30,7 +34,11 @@ def calculate_similarity(query, book):
 
     for synset1 in query_synsets:
         for synset2 in book_synsets:
-            similarity = wu_palmer_similarity(synset1, synset2)
-            best_similarity = max(best_similarity, similarity)  # Pilih kemiripan tertinggi
+            try:
+                similarity = wu_palmer_similarity(synset1, synset2)
+                best_similarity = max(best_similarity, similarity)
+            except Exception as e:
+                print(f"Error calculating similarity between {synset1} and {synset2}: {str(e)}")
+                continue
 
     return best_similarity
