@@ -6,8 +6,20 @@ from collections import defaultdict
 import numpy as np
 from math import ceil
 from sqlalchemy.orm import joinedload
+from extensions import redis_client
+import json
 
 def search_books_function(query, scenario, page=1, per_page=12):    
+    cache_key = "search_results"
+    cached_result = redis_client.get(cache_key)
+        
+    if cached_result:
+        cached_data = json.loads(cached_result)
+        if cached_data.get("query") == query and cached_data.get("scenario") == scenario:
+            return paginate_books(cached_data["results"], page, per_page)        
+        
+    print("Calculating new data" + query)
+    
     # 1. Preprocessing query
     processed_query = cached_preprocessing(query)
     
@@ -81,13 +93,15 @@ def search_books_function(query, scenario, page=1, per_page=12):
                 continue
 
     book_lists = sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
-    
-    # Menghitung total hasil dan halaman
-    total_results = len(book_lists)
+    redis_client.set(cache_key, json.dumps({"query": query, "scenario": scenario, "results": book_lists}), ex=86400) 
+    return paginate_books(book_lists, page, per_page)
+
+def paginate_books(books, page, per_page):
+    total_results = len(books)
     total_pages = ceil(total_results / per_page)
     start_idx = (page - 1) * per_page
     end_idx = start_idx + per_page
-    paginated_results = book_lists[start_idx:end_idx]
+    paginated_results = books[start_idx:end_idx]
 
     return {
         "total_results": total_results,
