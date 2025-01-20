@@ -17,9 +17,7 @@ def search_books_function(query, scenario, page=1, per_page=12):
         cached_data = json.loads(cached_result)
         if cached_data.get("query") == query and cached_data.get("scenario") == scenario:
             return paginate_books(cached_data["results"], page, per_page)        
-        
-    print("Calculating new data" + query)
-    
+            
     # 1. Preprocessing query
     processed_query = cached_preprocessing(query)
     
@@ -89,7 +87,6 @@ def search_books_function(query, scenario, page=1, per_page=12):
                         'cover': book.cover_link
                     })
             except KeyError:
-                print(f"Warning: Book ID {book_id} not found in mapping")
                 continue
 
     book_lists = sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
