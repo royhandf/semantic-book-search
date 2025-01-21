@@ -4,6 +4,7 @@ from models.user import User
 from controllers.book_controller import get_all_books, add_book_function, edit_book_function, delete_book_function
 from controllers.search_controller import search_books_function
 from controllers.user_controller import signin_user_function, signup_user_function
+from controllers.bookmark_controller import add_bookmark_function, get_user_bookmarks_function, delete_bookmark_function
 from extensions import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
@@ -188,3 +189,18 @@ def delete_book(id):
         return jsonify({'status': 'success', 'message': 'Book successfully deleted'}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/bookmarks/create', methods=['POST'])
+@jwt_required()
+def add_bookmark():
+    return add_bookmark_function()
+
+@main.route('/api/bookmarks/<int:user_id>', methods=['GET'])
+@jwt_required()
+def get_user_bookmarks(user_id):
+    return get_user_bookmarks_function(user_id)
+
+@main.route('/api/bookmarks/delete/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_bookmark(id):
+    return delete_bookmark_function(id)

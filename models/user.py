@@ -15,3 +15,7 @@ class User(db.Model):
         
     def check_password(self, password):
         return check_password_hash(self.password, password)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        return cls.query.get(id)
