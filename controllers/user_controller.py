@@ -72,3 +72,43 @@ def signup_user_function():
             "role": new_user.role
         }
     }), 201
+    
+def get_all_users_function():
+    try:
+        all_users = User.get_all()
+        return jsonify({
+            "status": "success",
+            "data": [user.data for user in all_users]
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+        
+def edit_user_function(user, data):
+    try:
+        user.name = data.get("name", user.name)
+        user.email = data.get("email", user.email)
+        
+        if 'password' in data and data['password'].strip():
+            user.set_password(data['password'])
+            
+        db.session.commit()
+        
+        return {
+            "message": "User successfully updated",
+            "data": user.data
+        }
+    except Exception as e:
+        db.session.rollback()
+        return { "message": str(e) }
+
+def delete_user_function(user):
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        return { "message": "User successfully deleted" }
+    except Exception as e:
+        db.session.rollback()
+        return { "message": str(e) }

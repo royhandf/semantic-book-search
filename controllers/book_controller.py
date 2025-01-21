@@ -261,7 +261,6 @@ def delete_book_function(book):
     db.session.commit()
     current_app.logger.info("Database commit executed successfully.")
 
-
 def get_all_books():
     books = Book.query.order_by(Book.created_at.desc()).all()   
     

@@ -3,7 +3,7 @@ from models.book import Book
 from models.user import User
 from controllers.book_controller import get_all_books, add_book_function, edit_book_function, delete_book_function
 from controllers.search_controller import search_books_function
-from controllers.user_controller import signin_user_function, signup_user_function
+from controllers.user_controller import signin_user_function, signup_user_function, get_all_users_function, edit_user_function, delete_user_function
 from controllers.bookmark_controller import add_bookmark_function, get_user_bookmarks_function, delete_bookmark_function
 from extensions import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -73,6 +73,21 @@ def book_detail(id):
             "status": "error",
             "message": str(e)
         }), 500
+
+@main.route('/api/bookmarks/create', methods=['POST'])
+@jwt_required()
+def add_bookmark():
+    return add_bookmark_function()
+
+@main.route('/api/bookmarks/<int:user_id>', methods=['GET'])
+@jwt_required()
+def get_user_bookmarks(user_id):
+    return get_user_bookmarks_function(user_id)
+
+@main.route('/api/bookmarks/delete/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_bookmark(id):
+    return delete_bookmark_function(id)
 
 @main.route('/api/dashboard/books', methods=['GET'])
 @jwt_required()
@@ -179,6 +194,7 @@ def edit_book(id):
         }), 500
 
 @main.route('/api/dashboard/books/delete/<int:id>', methods=['DELETE'])
+@jwt_required()
 def delete_book(id):
     try:
         book = Book.get_by_id(id)
@@ -190,17 +206,80 @@ def delete_book(id):
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@main.route('/api/bookmarks/create', methods=['POST'])
+@main.route('/api/dashboard/users', methods=['GET'])
 @jwt_required()
-def add_bookmark():
-    return add_bookmark_function()
+def users():
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
 
-@main.route('/api/bookmarks/<int:user_id>', methods=['GET'])
-@jwt_required()
-def get_user_bookmarks(user_id):
-    return get_user_bookmarks_function(user_id)
+    if user.role != 'admin':
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized access"
+        }), 403
 
-@main.route('/api/bookmarks/delete/<int:id>', methods=['DELETE'])
+    return get_all_users_function()
+        
+@main.route('/api/dashboard/users/delete/<int:id>', methods=['DELETE'])
 @jwt_required()
-def delete_bookmark(id):
-    return delete_bookmark_function(id)
+def delete_user(id):
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+
+    if user.role != 'admin':
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized access"
+        }), 403
+
+    user_to_delete = User.get_by_id(id)
+    if not user_to_delete:
+        return jsonify({
+            'status': 'error', 
+            'message': 'User not found'
+        }), 404
+        
+    try:
+        result = delete_user_function(user_to_delete)
+        return jsonify({
+            'status': 'success', 
+            'message': result['message']
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error', 
+            'message': str(e)
+        }), 500
+        
+@main.route('/api/dashboard/users/edit/<int:id>', methods=['PUT'])
+@jwt_required()
+def edit_user(id):
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+
+    if user.role != 'admin':
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized access"
+        }), 403
+
+    user_to_edit = User.get_by_id(id)
+    if not user_to_edit:
+        return jsonify({
+            'status': 'error', 
+            'message': 'User not found'
+        }), 404
+
+    try:
+        data = request.json
+        result = edit_user_function(user_to_edit, data)
+        return jsonify({
+            'status': 'success', 
+            'message': result['message'],
+            'data': result['data']
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error', 
+            'message': str(e)
+        }), 500

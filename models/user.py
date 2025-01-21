@@ -19,3 +19,17 @@ class User(db.Model):
     @classmethod
     def get_by_id(cls, id):
         return cls.query.get(id)
+    
+    @classmethod
+    def get_all(cls):
+        return cls.query.all()
+    
+    @property
+    def data(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "role": self.role,
+            "created_at": self.created_at
+        }
