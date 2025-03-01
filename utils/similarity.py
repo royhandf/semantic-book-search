@@ -19,9 +19,7 @@ def wu_palmer_similarity(synset1, synset2):
 
 def get_synsets(word):
     synsets = wn.synsets(word, pos=wn.NOUN) + wn.synsets(word, pos=wn.VERB) + wn.synsets(word, pos=wn.ADJ) + wn.synsets(word, pos=wn.ADV)
-    if not synsets:
-        return None  
-    return synsets
+    return synsets if synsets else []
 
 def calculate_similarity(query, book):
     query_synsets = get_synsets(query)

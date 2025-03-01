@@ -20,7 +20,7 @@ def search_books_function(query, scenario, page=1, per_page=12):
             
     # 1. Preprocessing query
     processed_query = cached_preprocessing(query)
-    
+        
     # 2. Book database
     books = Book.query.options(joinedload(Book.authors), joinedload(Book.editors)).all()
     
@@ -31,36 +31,39 @@ def search_books_function(query, scenario, page=1, per_page=12):
     for idx, book in enumerate(books):
         book_id = f'Buku {idx+1}'
         book_mapping[book_id] = idx
-                
-        processed_book = {
+        processed_metadata_books.append({
             "title": cached_preprocessing(book.title),
-            "author": cached_preprocessing(' '.join(author.name for author in book.authors)),
-            "editor": cached_preprocessing(' '.join(editor.name for editor in book.editors)),
+            "author": cached_preprocessing(" ".join([author.name for author in book.authors])),
+            "editor": cached_preprocessing(" ".join([editor.name for editor in book.editors])),
             "publisher": cached_preprocessing(book.publisher),
-            "description": cached_preprocessing(book.description if book.description else book.table_of_contents),
-        }
-        processed_metadata_books.append(processed_book)
+            "description": cached_preprocessing(book.description)
+        })    
         
     # 5. Calculate similarities
     book_similarities = defaultdict(list)
     
     if scenario == 0:
-         for idx, book in enumerate(processed_metadata_books, start=1):
+        for idx, book in enumerate(processed_metadata_books, start=1):
             all_terms = book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"]
             for query in processed_query:
-                similarities = [
-                    calculate_similarity(query, term)
-                    for term in all_terms
-                ]
+                similarities = [calculate_similarity(query, term) for term in all_terms]
                 if similarities:
                     book_similarities[f'Buku {idx}'].extend(similarities)
     else:
         # 4. Calculate TF-IDF
-        top_terms = calculate_tfidf_top_terms(processed_metadata_books, scenario)
+        top_terms = calculate_tfidf_top_terms(processed_metadata_books, scenario, processed_query)
+        
         # 5. Calculate similarities
         for book_id, tfidf_data in top_terms.items():
+            book_idx = book_mapping[book_id]
+            book = processed_metadata_books[book_idx]
+            
+            all_contents = book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"]
             terms = {item["term"] for item in tfidf_data}
+
             for query_term in processed_query:
+                if query_term in all_contents:
+                    book_similarities[book_id].append(1.0)
                 similarities = [
                     calculate_similarity(query_term, term)
                     for term in terms
@@ -78,19 +81,19 @@ def search_books_function(query, scenario, page=1, per_page=12):
                 book = books[book_idx]
 
                 avg_similarity = np.mean(similarities)
-                if avg_similarity >= 0.5: 
+                if avg_similarity >= 0.40: 
                     book_stats.append({
                         'id': book.id,
                         'title': book.title,
-                        'average_similarity': avg_similarity,
-                        'std_dev': np.std(similarities, ddof=0),
+                        'average_similarity': round(avg_similarity * 100, 2),
+                        'std_dev': round(np.std(similarities, ddof=0) * 100, 2),
                         'cover': book.cover_link
                     })
             except KeyError:
                 continue
 
     book_lists = sorted(book_stats, key=lambda x: (-x['average_similarity'], x['std_dev']))  # Sort high to low
-    redis_client.set(cache_key, json.dumps({"query": query, "scenario": scenario, "results": book_lists}), ex=86400) 
+    redis_client.set(cache_key, json.dumps({"query": query, "scenario": scenario, "results": book_lists}), ex=3600) 
     return paginate_books(book_lists, page, per_page)
 
 def paginate_books(books, page, per_page):

@@ -1,64 +1,52 @@
-import math
+from sklearn.feature_extraction.text import TfidfVectorizer
 import json
-from extensions import redis_client
 import hashlib
-        
-def compute_tf(term, document):
-    return document.count(term) / len(document) if document else 0
+from extensions import redis_client
 
-def compute_idf(term, documents):
-    df = sum(1 for document in documents if term in document)
-    return math.log10(len(documents) / df) if df != 0 else 0
-
-def compute_tfidf(tf, idf):
-    return tf * idf
-    
-# Fungsi untuk menghitung TF-IDF dan mengambil N term teratas
-def calculate_tfidf_top_terms(processed_metadata_books, scenario=3):
+def calculate_tfidf_top_terms(processed_metadata_books, scenario=3, processed_query=None):
     metadata_key = hashlib.sha256(json.dumps(processed_metadata_books).encode('utf-8')).hexdigest()
     
-    # Cek cache Redis
     cached_result = redis_client.get(metadata_key)
     if cached_result:
-        # Jika ada cache, ambil data dan sesuaikan dengan scenario
         tfidf_books = json.loads(cached_result)
         result = {}
-        # Ambil hanya scenario data dari 10 data teratas yang disimpan
         for book_id, terms in tfidf_books.items():
-            result[book_id] = terms[:scenario]
-        return result
+            filtered_terms = filter_terms_by_query(terms, processed_query)[:scenario]
+            result[book_id] = filtered_terms
+        return result    
     
-    documents = [book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"]
-                 for book in processed_metadata_books]
+    # 1. Siapkan dokumen dari metadata buku
+    documents = [
+        " ".join(book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"])
+        for book in processed_metadata_books
+    ]
 
-    all_terms = list(set(term for book in documents for term in book))
-    idf_cache = {term: compute_idf(term, documents) for term in all_terms}
-    
+    # 2. Hitung TF-IDF dengan library sklearn tanpa preprocessing
+    vectorizer = TfidfVectorizer(lowercase=False, tokenizer=None, preprocessor=None, stop_words=None)
+    tfidf_matrix = vectorizer.fit_transform(documents)
+    terms = vectorizer.get_feature_names_out()
+
+    # 3. Ambil top-N terms berdasarkan bobot tertinggi untuk tiap buku
     tfidf_books = {}
-    
-    for i, book in enumerate(documents):
-        tfidf_data = []
-        
-        for term in all_terms:
-            tf_book = compute_tf(term, book)
-            idf = idf_cache[term]
-            tfidf_value = compute_tfidf(tf_book, idf)
-            tfidf_data.append({
-                "term": term,
-                "tfidf": round(tfidf_value, 4)
-            })
+    for i, row in enumerate(tfidf_matrix.toarray()):
+        tfidf_data = [{"term": terms[idx], "tfidf": row[idx]} for idx in row.argsort()[-16:][::-1]] 
+        filtered_terms = filter_terms_by_query(tfidf_data, processed_query)
+        tfidf_books[f"Buku {i+1}"] = filtered_terms
 
-        # Ambil nilai TF-IDF tertinggi untuk setiap buku, simpan 10 data teratas
-        top_terms = sorted(tfidf_data, key=lambda x: x["tfidf"], reverse=True)[:10]
-        tfidf_books[f"Buku {i+1}"] = top_terms
-    
+    # 4. Simpan ke Redis
+    serialized_data = json.dumps(tfidf_books)
     with redis_client.pipeline() as pipe:
-        pipe.set(metadata_key, json.dumps(tfidf_books), ex=86400)  # Cache selama 1 hari
+        pipe.set(metadata_key, serialized_data, ex=86400)
         pipe.execute()
 
-    # Kembalikan hasil yang sesuai dengan scenario
+    # Kembalikan hasil yang sesuai dengan skenario
     result = {}
     for book_id, terms in tfidf_books.items():
         result[book_id] = terms[:scenario]
-
     return result
+
+def filter_terms_by_query(terms, query_terms):
+    return [
+        term for term in terms
+        if not any(query_term in term["term"] for query_term in (query_terms or []))
+    ]
