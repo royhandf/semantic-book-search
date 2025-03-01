@@ -48,5 +48,5 @@ class Book(db.Model):
 
     @classmethod
     def get_by_id(cls, id):
-        return cls.query.get(id)
+        return cls.query.filter_by(id=id).first()
     

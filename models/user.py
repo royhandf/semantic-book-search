@@ -18,7 +18,7 @@ class User(db.Model):
     
     @classmethod
     def get_by_id(cls, id):
-        return cls.query.get(id)
+        return cls.query.filter_by(id=id).first()
     
     @classmethod
     def get_all(cls):
