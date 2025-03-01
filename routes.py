@@ -74,7 +74,7 @@ def book_detail(id):
             "message": str(e)
         }), 500
 
-@main.route('/api/bookmarks/create', methods=['POST'])
+@main.route('/api/bookmarks/add', methods=['POST'])
 @jwt_required()
 def add_bookmark():
     return add_bookmark_function()
@@ -251,7 +251,7 @@ def delete_user(id):
             'message': str(e)
         }), 500
         
-@main.route('/api/dashboard/users/edit/<int:id>', methods=['PUT'])
+@main.route('/api/dashboard/users/edit/<int:id>', methods=['GET', 'PUT'])
 @jwt_required()
 def edit_user(id):
     user_id = get_jwt_identity()
@@ -271,8 +271,15 @@ def edit_user(id):
         }), 404
 
     try:
+        if request.method == 'GET':
+            return jsonify({
+                "status": "success",
+                "data": user_to_edit.data  
+            }), 200
+            
         data = request.json
         result = edit_user_function(user_to_edit, data)
+        
         return jsonify({
             'status': 'success', 
             'message': result['message'],
