@@ -15,6 +15,7 @@ def add_bookmark_function():
         
     user = User.get_by_id(user_id)
     book = Book.get_by_id(book_id)
+    
     if not user or not book:
         return jsonify({
             "status": "error",
@@ -43,9 +44,10 @@ def get_user_bookmarks_function(user_id):
     
     if not bookmarks:
         return jsonify({
-            'status': 'error',
-            'message': 'No bookmarks found.'
-        }), 404
+            'status': 'success',
+            'message': 'No bookmarks found',
+            'data': []
+        }), 200
     return jsonify({
         'status': 'success',
         'data': bookmarks
