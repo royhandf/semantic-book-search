@@ -1,3 +1,4 @@
+from .category import Category
 from .book import Book
 from .author import Author
 from .editor import Editor

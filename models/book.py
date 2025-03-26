@@ -1,4 +1,5 @@
 from extensions import db
+from models.book_category import book_category
 
 class Book(db.Model):
     __tablename__ = 'books'
@@ -16,6 +17,7 @@ class Book(db.Model):
     # relationships
     authors = db.relationship('Author', backref='book', lazy=True, cascade="all,delete")
     editors = db.relationship('Editor', backref='book', lazy=True, cascade="all,delete")
+    categories = db.relationship('Category', secondary=book_category, lazy='subquery', backref=db.backref('books', lazy=True))
 
     @property
     def data(self):
@@ -30,7 +32,8 @@ class Book(db.Model):
             'pdf_link': self.pdf_link,
             'cover_link': self.cover_link,
             'authors': ', '.join([author.name for author in self.authors]),
-            'editors': ', '.join([editor.name for editor in self.editors])
+            'editors': ', '.join([editor.name for editor in self.editors]),
+            'categories': [category.name for category in self.categories] 
         }
 
     def save(self):
