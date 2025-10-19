@@ -1,39 +1,38 @@
 from extensions import db
-from models.book_category import book_category
 
 class Book(db.Model):
     __tablename__ = 'books'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    authors = db.Column(db.Text, nullable=True)
+    editors = db.Column(db.Text, nullable=True)
+    language = db.Column(db.String(100), nullable=True)
+    description = db.Column(db.Text, index=True)
+    table_of_contents = db.Column(db.Text, index=True)
     publisher = db.Column(db.String(255), index=True)
     published = db.Column(db.Integer)
-    description = db.Column(db.Text, index=True)
-    isbn = db.Column(db.String(535))
-    table_of_contents = db.Column(db.Text, index=True)
+    subject = db.Column(db.Text, nullable=True)
+    isbn = db.Column(db.Text, nullable=True)
     pdf_link = db.Column(db.String(255))
     cover_link = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     
-    # relationships
-    authors = db.relationship('Author', backref='book', lazy=True, cascade="all,delete")
-    editors = db.relationship('Editor', backref='book', lazy=True, cascade="all,delete")
-    categories = db.relationship('Category', secondary=book_category, lazy='subquery', backref=db.backref('books', lazy=True))
-
     @property
     def data(self):
         return {
             'id': self.id,
             'title': self.title,
+            'authors': self.authors,
+            'editors': self.editors,
+            'language': self.language,
+            'description': self.description,
+            'table_of_contents': self.table_of_contents,
             'publisher': self.publisher,
             'published': self.published,
-            'description': self.description,
+            'subject': self.subject,
             'isbn': self.isbn,
-            'table_of_contents': self.table_of_contents,
             'pdf_link': self.pdf_link,
             'cover_link': self.cover_link,
-            'authors': ', '.join([author.name for author in self.authors]),
-            'editors': ', '.join([editor.name for editor in self.editors]),
-            'categories': [category.name for category in self.categories] 
         }
 
     def save(self):
@@ -42,12 +41,7 @@ class Book(db.Model):
 
     @classmethod
     def get_all(cls):
-        return cls._fetch_all()
-
-    @classmethod
-    def _fetch_all(cls):
-        r = cls.query.all() 
-        return [book.data for book in r]
+        return [book.data for book in cls.query.all()]
 
     @classmethod
     def get_by_id(cls, id):

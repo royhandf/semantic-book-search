@@ -1,23 +1,23 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 import json
-import hashlib
 from extensions import redis_client
 
 def calculate_tfidf_top_terms(processed_metadata_books, scenario=3, processed_query=None):
-    metadata_key = hashlib.sha256(json.dumps(processed_metadata_books).encode('utf-8')).hexdigest()
+    metadata_key = "tfidf_all_books"
     
     cached_result = redis_client.get(metadata_key)
     if cached_result:
         tfidf_books = json.loads(cached_result)
-        result = {}
-        for book_id, terms in tfidf_books.items():
-            filtered_terms = filter_terms_by_query(terms, processed_query)[:scenario]
-            result[book_id] = filtered_terms
-        return result    
+        valid_book_ids = [book["id"] for book in processed_metadata_books]
+        return {
+            book_id: terms[:scenario] 
+            for book_id, terms in tfidf_books.items()
+            if book_id in valid_book_ids
+        }
     
-    # 1. Siapkan dokumen dari metadata buku
+    # 1. dokumen dari metadata buku
     documents = [
-        " ".join(book["title"] + book["author"] + book["editor"] + book["publisher"] + book["description"])
+        " ".join(book["title"] + book["description"])
         for book in processed_metadata_books
     ]
 
@@ -29,24 +29,23 @@ def calculate_tfidf_top_terms(processed_metadata_books, scenario=3, processed_qu
     # 3. Ambil top-N terms berdasarkan bobot tertinggi untuk tiap buku
     tfidf_books = {}
     for i, row in enumerate(tfidf_matrix.toarray()):
-        tfidf_data = [{"term": terms[idx], "tfidf": row[idx]} for idx in row.argsort()[-16:][::-1]] 
-        filtered_terms = filter_terms_by_query(tfidf_data, processed_query)
-        tfidf_books[f"Buku {i+1}"] = filtered_terms
+        tfidf_data = [{"term": terms[idx], "tfidf": row[idx]} for idx in row.argsort()[-10:][::-1]] 
+        book_id = processed_metadata_books[i]["id"]
+        tfidf_books[book_id] = tfidf_data
 
     # 4. Simpan ke Redis
     serialized_data = json.dumps(tfidf_books)
     with redis_client.pipeline() as pipe:
-        pipe.set(metadata_key, serialized_data, ex=86400)
+        pipe.set(metadata_key, serialized_data, ex=None)
         pipe.execute()
-
+        
+    with open(f"tfidf_results.json", "w", encoding="utf-8") as f:
+        json.dump(tfidf_books, f, indent=4, ensure_ascii=False)
+        
     # Kembalikan hasil yang sesuai dengan skenario
     result = {}
     for book_id, terms in tfidf_books.items():
-        result[book_id] = terms[:scenario]
+        result[book_id] = terms[:scenario]  
+
     return result
 
-def filter_terms_by_query(terms, query_terms):
-    return [
-        term for term in terms
-        if not any(query_term in term["term"] for query_term in (query_terms or []))
-    ]

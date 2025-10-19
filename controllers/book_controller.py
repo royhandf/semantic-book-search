@@ -4,7 +4,6 @@ from models.book import Book
 from models.author import Author
 from models.editor import Editor
 from models.category import Category
-from models.book_category import book_category
 from datetime import datetime
 from urllib.parse import urlparse
 import os
@@ -13,17 +12,18 @@ def add_book_function():
     if request.method == 'POST':
         title = request.form.get('title')
         publisher = request.form.get('publisher')
-        published = request.form.get('published')
+        published = request.form.get('published')    
+        isbn = request.form.get('isbn')
+        description = request.form.get('description', '')
+        table_of_contents = request.form.get('table_of_contents', '')
+        authors = request.form.get('authors', '')
+        editors = request.form.get('editors', '')
         
         if published and published.isdigit(): 
             published = int(published)  
         else:
             published = None  
             
-        isbn = request.form.get('isbn')
-        description = request.form.get('description', '')
-        table_of_contents = request.form.get('table_of_contents', '')
-        category_ids = request.form.getlist('categories')
         pdf = request.files['pdf_link']
         image_cover = request.files['cover_link']
         
@@ -72,33 +72,16 @@ def add_book_function():
             publisher=publisher,
             published=published,
             description=description,
-            isbn=isbn,
             table_of_contents=table_of_contents,
+            isbn=isbn,
+            authors=authors.strip(), 
+            editors=editors.strip(),            
             pdf_link=pdf_filepath,
             cover_link=image_filepath
         )
         
         db.session.add(book)
         db.session.commit()             
-        
-        categories = Category.query.filter(Category.id.in_(category_ids)).all()
-        book.categories.extend(categories)
-
-        author_names = request.form.get('authors', '').split(';')
-        for name in author_names:
-            name = name.strip()
-            if name:
-                author = Author(name=name, book_id=book.id)
-                db.session.add(author) 
-
-        editor_names = request.form.get('editors', '').split(';')
-        for name in editor_names:
-            name = name.strip()
-            if name:
-                editor = Editor(name=name, book_id=book.id)
-                db.session.add(editor)
-            
-        db.session.commit()
 
         return jsonify({
             "status": "success",
@@ -108,13 +91,14 @@ def add_book_function():
                 'publisher': book.publisher,
                 'published': book.published,
                 'description': book.description,
-                'isbn': book.isbn,
                 'table_of_contents': book.table_of_contents,    
+                'language': 'eng',
+                'subject': '',
+                'isbn': book.isbn,
+                'authors': book.authors,
+                'editors': book.editors,
                 "pdf_link": f"{request.host_url}{book.pdf_link}",
                 "cover_link": f"{request.host_url}{book.cover_link}",
-                'authors': [author.name for author in book.authors],
-                'editors': [editor.name for editor in book.editors],
-                'categories': [category.id for category in book.categories]
             }
         }), 201
         
@@ -126,17 +110,16 @@ def edit_book_function(book):
         title = request.form.get('title')
         publisher = request.form.get('publisher')
         published = request.form.get('published')
-        
+        isbn = request.form.get('isbn')
+        description = request.form.get('description', '')
+        table_of_contents = request.form.get('table_of_contents', '')
+        authors = request.form.get('authors', '')
+        editors = request.form.get('editors', '')
         if published and published.isdigit():
             published = int(published)
         else:
             published = None
             
-        isbn = request.form.get('isbn')
-        description = request.form.get('description', '')
-        table_of_contents = request.form.get('table_of_contents', '')
-        category_ids = request.form.getlist('categories')
-        
         # Handle file uploads if new files are provided
         if 'cover_link' in request.files:
             image_cover = request.files['cover_link']
@@ -190,34 +173,12 @@ def edit_book_function(book):
         book.title = title
         book.publisher = publisher
         book.published = published
-        book.description = description
         book.isbn = isbn
+        book.description = description
         book.table_of_contents = table_of_contents
+        book.authors = authors.strip()
+        book.editors = editors.strip()
 
-        if category_ids:
-            categories = Category.query.filter(Category.id.in_(category_ids)).all()
-            book.categories = categories
-        else:
-            book.categories = []
-
-        # Update authors
-        Author.query.filter_by(book_id=book.id).delete()
-        author_names = request.form.get('authors', '').split(';')
-        for name in author_names:
-            name = name.strip()
-            if name:
-                author = Author(name=name, book_id=book.id)
-                db.session.add(author)
-        
-        # Update editors
-        Editor.query.filter_by(book_id=book.id).delete()
-        editor_names = request.form.get('editors', '').split(';')
-        for name in editor_names:
-            name = name.strip()
-            if name:
-                editor = Editor(name=name, book_id=book.id)
-                db.session.add(editor)
-        
         db.session.commit()
         
         def is_full_url(url):
@@ -233,30 +194,24 @@ def edit_book_function(book):
                 'description': book.description,
                 'isbn': book.isbn,
                 'table_of_contents': book.table_of_contents,
+                'authors': book.authors,
+                'editors': book.editors,
                 "pdf_link": book.pdf_link if is_full_url(book.pdf_link) else f"{request.host_url}{book.pdf_link}",
                 "cover_link": book.cover_link if is_full_url(book.cover_link) else f"{request.host_url}{book.cover_link}",
-                'authors': [author.name for author in book.authors],
-                'editors': [editor.name for editor in book.editors],
-                'categories': [category.id for category in book.categories]
             }
         }), 200
 
 def delete_book_function(book):
     try:
-        # Hapus referensi dari tabel books_categories terlebih dahulu
-        db.session.execute(book_category.delete().where(book_category.c.book_id == book.id))
-        db.session.commit()
-        current_app.logger.info(f"References in books_categories for book {book.id} deleted.")
-
-        # Hapus file PDF dan cover jika ada
-        pdf_path = os.path.join(current_app.root_path, book.pdf_link)
-        cover_path = os.path.join(current_app.root_path, book.cover_link)
-
-        if book.pdf_link and os.path.exists(pdf_path):
-            os.remove(pdf_path)
-        
-        if book.cover_link and os.path.exists(cover_path):
-            os.remove(cover_path)
+        if book.pdf_link:
+            pdf_path = os.path.join(current_app.root_path, book.pdf_link)
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+                
+        if book.cover_link:
+            cover_path = os.path.join(current_app.root_path, book.cover_link)
+            if os.path.exists(cover_path):
+                os.remove(cover_path)
 
         # Hapus buku dari database
         db.session.delete(book)
@@ -273,13 +228,16 @@ def is_full_url(url):
     return urlparse(url).scheme in ["http", "https"]
 
 def get_all_books(page=1, per_page=10, search=""):
-    books_query = Book.query.options(db.joinedload(Book.categories))
+    books_query = Book.query
 
     if search:
-        search_filter = f"%{search.lower()}%"
+        search_filter = f"%{search.lower()}%"  
         books_query = books_query.filter(
             db.or_(
-                db.func.lower(Book.title).like(search_filter)
+                db.func.lower(Book.title).like(search_filter),  
+                db.func.lower(Book.publisher).like(search_filter),  
+                db.func.lower(Book.authors).like(search_filter),
+                db.func.lower(Book.editors).like(search_filter)
             )
         )
         
@@ -293,7 +251,6 @@ def get_all_books(page=1, per_page=10, search=""):
                 **book.data,
                 "pdf_link": book.pdf_link if is_full_url(book.pdf_link) else f"{request.host_url}{book.pdf_link}",
                 "cover_link": book.cover_link if is_full_url(book.cover_link) else f"{request.host_url}{book.cover_link}",
-                "categories": [category.name for category in book.categories] 
             }
             for book in paginated_books.items
         ],
