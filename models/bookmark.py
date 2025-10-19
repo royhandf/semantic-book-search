@@ -7,7 +7,7 @@ class Bookmark(db.Model):
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
-    user = db.relationship('User', backref='bookmark', lazy=True)
+    user = db.relationship('User', backref='bookmarks', lazy=True)
     book = db.relationship('Book', backref='bookmarked_by', lazy=True)
     
     def save(self):

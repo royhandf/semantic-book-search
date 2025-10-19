@@ -206,7 +206,7 @@ def search_books_function(query, scenario, page=1, per_page=12):
             combined_score = (fts_score * 0.70) + (avg * 0.30)
             
             # Anda bisa menyesuaikan ambang batas ini setelah menggabungkan skor
-            if combined_score >= 0.15: # Ambang batas untuk menampilkan hasil
+            if combined_score >= 0.40: # Ambang batas untuk menampilkan hasil
                 stat = {
                     'id': book.id,
                     'title': book.title,

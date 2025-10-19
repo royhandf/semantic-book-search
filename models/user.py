@@ -21,6 +21,10 @@ class User(db.Model):
         return cls.query.filter_by(id=id).first()
     
     @classmethod
+    def get_by_email(cls, email):
+        return cls.query.filter_by(email=email).first()
+    
+    @classmethod
     def get_all(cls):
         return cls.query.all()
     

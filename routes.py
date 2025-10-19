@@ -1,8 +1,6 @@
 from flask import Blueprint, jsonify, request
 from models.book import Book
 from models.user import User
-from models.category import Category
-from controllers.category_controller import get_all_categories,create_category, update_category
 from controllers.book_controller import get_all_books, add_book_function, edit_book_function, delete_book_function
 from controllers.search_controller import search_books_function
 from controllers.user_controller import signin_user_function, signup_user_function, get_all_users_function, edit_user_function, delete_user_function
@@ -90,81 +88,6 @@ def get_user_bookmarks(user_id):
 @jwt_required()
 def delete_bookmark(id):
     return delete_bookmark_function(id)
-
-@main.route('/api/dashboard/categories', methods=['GET'])
-@jwt_required()
-def categories():
-    user_id = get_jwt_identity()
-    user = User.query.filter_by(id=user_id).first()
-
-    if user.role != 'admin':
-        return jsonify({
-            "status": "error",
-            "message": "Unauthorized access"
-        }), 403
-
-    return get_all_categories()
-
-@main.route('/api/dashboard/categories/create', methods=['POST'])
-@jwt_required()
-def add_category():
-    user_id = get_jwt_identity()
-    user = User.query.filter_by(id=user_id).first()
-
-    if user.role != 'admin':
-        return jsonify({
-            "status": "error",
-            "message": "Unauthorized access"
-        }), 403
-
-    return create_category()
-
-@main.route('/api/dashboard/categories/delete/<int:id>', methods=['DELETE'])
-@jwt_required()
-def delete_category(id):
-    user_id = get_jwt_identity()
-    user = User.query.filter_by(id=user_id).first()
-
-    if user.role != 'admin':
-        return jsonify({
-            "status": "error",
-            "message": "Unauthorized access"
-        }), 403
-
-    category = Category.query.get(id)
-    if not category:
-        return jsonify({"message": "Category not found", }), 404
-
-    db.session.delete(category)
-    db.session.commit()
-    
-    return jsonify({"message": "Category deleted successfully", "status": "success"}), 200
-        
-@main.route('/api/dashboard/categories/edit/<int:id>', methods=['GET', 'PUT'])
-@jwt_required()
-def edit_category(id):
-    user_id = get_jwt_identity()
-    user = User.query.filter_by(id=user_id).first()
-
-    if user.role != 'admin':
-        return jsonify({
-            "status": "error",
-            "message": "Unauthorized access"
-        }), 403
-
-    try:
-        category = Category.get_by_id(id)
-        
-        if request.method == 'GET':
-            return jsonify({
-                "status": "success",
-                "data": category.data
-            }), 200
-            
-        return update_category(id)
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 @main.route('/api/dashboard/books', methods=['GET'])
 @jwt_required()
