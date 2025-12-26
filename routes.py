@@ -6,9 +6,10 @@ from controllers.search_controller import search_books_function
 from controllers.user_controller import signin_user_function, signup_user_function, get_all_users_function, edit_user_function, delete_user_function
 from controllers.bookmark_controller import add_bookmark_function, get_user_bookmarks_function, delete_bookmark_function
 from extensions import db
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from sqlalchemy.exc import IntegrityError
 from urllib.parse import urlparse
+from datetime import timedelta
 
 main = Blueprint('main', __name__)
 
