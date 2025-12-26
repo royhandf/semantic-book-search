@@ -19,6 +19,30 @@ def signin():
 @main.route('/api/signup', methods=['POST'])
 def signup():
     return signup_user_function()
+
+@main.route('/api/auth/google', methods=['POST'])
+def google_auth():
+    data = request.get_json() or {}
+    email = data.get("email")
+    name = data.get("name")
+    
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.get_by_email(email)
+    
+    if not user:
+        user = User(name=name, email=email, role="user")
+        db.session.add(user)
+        db.session.commit()
+    
+    access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=1))
+    
+    return jsonify({
+        "status": "success",
+        "token": access_token,
+        "user": user.data
+    }), 200
     
 @main.route('/logout')
 def logout():
